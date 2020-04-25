@@ -563,7 +563,17 @@ var defaultTechnicalIndicator = {
   bar: {
     upColor: '#26A69A',
     downColor: '#EF5350',
-    noChangeColor: '#666666'
+    noChangeColor: '#666666',
+    macd: {
+      barWidth: NaN,
+      // macd指标柱子宽度, 默认为NaN则跟随K线设置
+      disableStroke: false // macd指标柱子禁止描边, 默认为false则跟随K线设置
+
+    },
+    vol: {
+      disableStroke: false // vol指标柱子禁止描边 默认为false则跟随K线设置
+
+    }
   },
   line: {
     size: 1,
@@ -4102,6 +4112,60 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
       this._ctx.setLineDash([]);
     }
     /**
+     * 是否填充bar
+     * @private
+     */
+
+  }, {
+    key: "_isFill",
+    value: function _isFill(dataList, i) {
+      var candleStick = this._chartData.styleOptions().candleStick;
+
+      var _formatValue = formatValue(dataList, i, {}),
+          open = _formatValue.open,
+          close = _formatValue.close;
+
+      var isFill;
+
+      switch (candleStick.bar.style) {
+        case CandleStickStyle.SOLID:
+          {
+            isFill = true;
+            break;
+          }
+
+        case CandleStickStyle.STROKE:
+          {
+            isFill = false;
+            break;
+          }
+
+        case CandleStickStyle.UP_STROKE:
+          {
+            if (close > open) {
+              isFill = false;
+            } else {
+              isFill = true;
+            }
+
+            break;
+          }
+
+        case CandleStickStyle.DOWN_STROKE:
+          {
+            if (close > open) {
+              isFill = true;
+            } else {
+              isFill = false;
+            }
+
+            break;
+          }
+      }
+
+      return isFill;
+    }
+    /**
      * 绘制指标
      * @private
      */
@@ -4151,13 +4215,15 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
               } else {
                 _this3._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor;
                 _this3._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor;
-              }
+              } // const preKLineData = formatValue(dataList, i - 1, {})
+              // const preMacd = formatValue(preKLineData, 'macd', {}).macd
+              // const isFill = !((preMacd || preMacd === 0) && macd > preMacd)
 
-              var preKLineData = formatValue(dataList, i - 1, {});
-              var preMacd = formatValue(preKLineData, 'macd', {}).macd;
-              var isFill = !((preMacd || preMacd === 0) && macd > preMacd);
 
-              _this3._drawBars(x, halfBarSpace, macd, isFill);
+              var macdBarOption = technicalIndicatorOptions.bar.macd;
+              var isFill = macdBarOption.disableStroke ? true : _this3._isFill(dataList, i);
+
+              _this3._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill);
 
               break;
             }
@@ -4169,16 +4235,22 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
               var open = kLineData.open;
 
               if (close > open) {
+                _this3._ctx.strokeStyle = technicalIndicatorOptions.bar.upColor;
                 _this3._ctx.fillStyle = technicalIndicatorOptions.bar.upColor;
               } else if (close < open) {
+                _this3._ctx.strokeStyle = technicalIndicatorOptions.bar.downColor;
                 _this3._ctx.fillStyle = technicalIndicatorOptions.bar.downColor;
               } else {
+                _this3._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor;
                 _this3._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor;
               }
 
               var num = values[values.length - 1];
+              var volBarOption = technicalIndicatorOptions.bar.vol;
 
-              _this3._drawBars(x, halfBarSpace, num, true);
+              var _isFill2 = volBarOption.disableStroke ? true : _this3._isFill(dataList, i);
+
+              _this3._drawBars(x, halfBarSpace, num, _isFill2);
 
               break;
             }
@@ -10939,14 +11011,14 @@ var Chart = /*#__PURE__*/function () {
  */
 var instances = {};
 var idBase = 1;
-var errorMessage = 'Chart version is 5.2.0. Root dom is null, can not initialize the chart!!!';
+var errorMessage = 'Chart version is 5.2.1. Root dom is null, can not initialize the chart!!!';
 /**
  * 获取版本号
  * @returns {string}
  */
 
 function version() {
-  return '5.2.0';
+  return '5.2.1';
 }
 /**
  * 初始化

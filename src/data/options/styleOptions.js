@@ -202,7 +202,14 @@ const defaultTechnicalIndicator = {
   bar: {
     upColor: '#26A69A',
     downColor: '#EF5350',
-    noChangeColor: '#666666'
+    noChangeColor: '#666666',
+    macd: {
+      barWidth: NaN, // macd指标柱子宽度, 默认为NaN则跟随K线设置
+      disableStroke: false // macd指标柱子禁止描边, 默认为false则跟随K线设置
+    },
+    vol: {
+      disableStroke: false // vol指标柱子禁止描边 默认为false则跟随K线设置
+    }
   },
   line: {
     size: 1,

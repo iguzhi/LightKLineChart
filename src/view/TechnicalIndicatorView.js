@@ -14,7 +14,7 @@
 
 import View from './View'
 import { TechnicalIndicatorType, getTechnicalIndicatorDataKeysAndValues } from '../data/options/technicalIndicatorParamOptions'
-import { LineStyle } from '../data/options/styleOptions'
+import { LineStyle, CandleStickStyle } from '../data/options/styleOptions'
 import { drawHorizontalLine, drawVerticalLine, drawLine } from '../utils/canvas'
 import { formatValue } from '../utils/format'
 
@@ -70,6 +70,44 @@ export default class TechnicalIndicatorView extends View {
   }
 
   /**
+   * 是否填充bar
+   * @private
+   */
+  _isFill (dataList, i) {
+    const candleStick = this._chartData.styleOptions().candleStick
+    const { open, close } = formatValue(dataList, i, {})
+    let isFill;
+    switch (candleStick.bar.style) {
+      case CandleStickStyle.SOLID: {
+        isFill = true
+        break
+      }
+      case CandleStickStyle.STROKE: {
+        isFill = false
+        break
+      }
+      case CandleStickStyle.UP_STROKE: {
+        if (close > open) {
+          isFill = false
+        } else {
+          isFill = true
+        }
+        break
+      }
+      case CandleStickStyle.DOWN_STROKE: {
+        if (close > open) {
+          isFill = true
+        } else {
+          isFill = false
+        }
+        break
+      }
+    }
+
+    return isFill;
+  }
+
+  /**
    * 绘制指标
    * @private
    */
@@ -107,10 +145,13 @@ export default class TechnicalIndicatorView extends View {
               this._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor
               this._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor
             }
-            const preKLineData = formatValue(dataList, i - 1, {})
-            const preMacd = formatValue(preKLineData, 'macd', {}).macd
-            const isFill = !((preMacd || preMacd === 0) && macd > preMacd)
-            this._drawBars(x, halfBarSpace, macd, isFill)
+            // const preKLineData = formatValue(dataList, i - 1, {})
+            // const preMacd = formatValue(preKLineData, 'macd', {}).macd
+            // const isFill = !((preMacd || preMacd === 0) && macd > preMacd)
+            const macdBarOption = technicalIndicatorOptions.bar.macd
+            const isFill = macdBarOption.disableStroke ? true : this._isFill(dataList, i)
+
+            this._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill)
             break
           }
           case TechnicalIndicatorType.VOL: {
@@ -118,14 +159,21 @@ export default class TechnicalIndicatorView extends View {
             const close = kLineData.close
             const open = kLineData.open
             if (close > open) {
+              this._ctx.strokeStyle = technicalIndicatorOptions.bar.upColor
               this._ctx.fillStyle = technicalIndicatorOptions.bar.upColor
             } else if (close < open) {
+              this._ctx.strokeStyle = technicalIndicatorOptions.bar.downColor
               this._ctx.fillStyle = technicalIndicatorOptions.bar.downColor
             } else {
+              this._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor
               this._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor
             }
             const num = values[values.length - 1]
-            this._drawBars(x, halfBarSpace, num, true)
+
+            const volBarOption = technicalIndicatorOptions.bar.vol
+            const isFill = volBarOption.disableStroke ? true : this._isFill(dataList, i)
+
+            this._drawBars(x, halfBarSpace, num, isFill)
             break
           }
           case TechnicalIndicatorType.SAR: {
