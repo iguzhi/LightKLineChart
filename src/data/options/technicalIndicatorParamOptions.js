@@ -39,8 +39,8 @@ export const TechnicalIndicatorType = {
 }
 
 export const defaultTechnicalIndicatorParamOptions = {
-  [TechnicalIndicatorType.MA]: [5, 10, 20, 40, 60],
-  [TechnicalIndicatorType.EMA]: [5, 10, 20, 40, 60],
+  [TechnicalIndicatorType.MA]: [5, 10, 30, 60],
+  [TechnicalIndicatorType.EMA]: [6, 12, 20],
   [TechnicalIndicatorType.VOL]: [5, 10, 20],
   [TechnicalIndicatorType.MACD]: [12, 26, 9],
   [TechnicalIndicatorType.BOLL]: [20],
