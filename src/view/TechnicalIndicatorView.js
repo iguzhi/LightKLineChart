@@ -145,11 +145,12 @@ export default class TechnicalIndicatorView extends View {
               this._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor
               this._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor
             }
-            // const preKLineData = formatValue(dataList, i - 1, {})
-            // const preMacd = formatValue(preKLineData, 'macd', {}).macd
-            // const isFill = !((preMacd || preMacd === 0) && macd > preMacd)
+            const preKLineData = formatValue(dataList, i - 1, {})
+            const preMacd = formatValue(preKLineData, 'macd', {}).macd
+            let isFill = !((preMacd || preMacd === 0) && macd > preMacd)
+
             const macdBarOption = technicalIndicatorOptions.bar.macd
-            const isFill = macdBarOption.disableStroke ? true : this._isFill(dataList, i)
+            isFill = macdBarOption.disableStroke ? true : isFill
 
             this._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill)
             break

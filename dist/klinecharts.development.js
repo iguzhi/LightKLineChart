@@ -1126,8 +1126,13 @@ calcIndicator[TechnicalIndicatorType.MA] = function (dataList, params) {
     var close = dataList[i].close;
 
     for (var j = 0; j < paramsLength; j++) {
-      closeSums[j] = (closeSums[j] || 0) + close;
       var p = params[j];
+
+      if (!p || p < 0) {
+        continue;
+      }
+
+      closeSums[j] = (closeSums[j] || 0) + close;
 
       if (i < p) {
         ma["ma".concat(p)] = closeSums[j] / (i + 1);
@@ -1161,15 +1166,21 @@ calcIndicator[TechnicalIndicatorType.EMA] = function (dataList, params) {
     var close = dataList[i].close;
 
     for (var j = 0; j < paramsLength; j++) {
+      var p = params[j];
+
+      if (!p || p < 0) {
+        continue;
+      }
+
       var emaValue = void 0;
 
       if (i === 0) {
         emaValue = close;
       } else {
-        emaValue = (2 * close + (params[j] - 1) * oldEmas[j]) / (params[j] + 1);
+        emaValue = (2 * close + (p - 1) * oldEmas[j]) / (p + 1);
       }
 
-      ema["ema".concat(params[j])] = emaValue;
+      ema["ema".concat(p)] = emaValue;
       oldEmas[j] = emaValue;
     }
 
@@ -1197,8 +1208,13 @@ calcIndicator[TechnicalIndicatorType.VOL] = function (dataList, params) {
     var vol = {};
 
     for (var j = 0; j < paramsLength; j++) {
-      volumeSums[j] = (volumeSums[j] || 0) + num;
       var p = params[j];
+
+      if (!p || p < 0) {
+        continue;
+      }
+
+      volumeSums[j] = (volumeSums[j] || 0) + num;
 
       if (i < p) {
         vol["ma".concat(p)] = volumeSums[j] / (i + 1);
@@ -4231,13 +4247,13 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
               } else {
                 _this3._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor;
                 _this3._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor;
-              } // const preKLineData = formatValue(dataList, i - 1, {})
-              // const preMacd = formatValue(preKLineData, 'macd', {}).macd
-              // const isFill = !((preMacd || preMacd === 0) && macd > preMacd)
+              }
 
-
+              var preKLineData = formatValue(dataList, i - 1, {});
+              var preMacd = formatValue(preKLineData, 'macd', {}).macd;
+              var isFill = !((preMacd || preMacd === 0) && macd > preMacd);
               var macdBarOption = technicalIndicatorOptions.bar.macd;
-              var isFill = macdBarOption.disableStroke ? true : _this3._isFill(dataList, i);
+              isFill = macdBarOption.disableStroke ? true : isFill;
 
               _this3._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill);
 
@@ -4783,6 +4799,17 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
       var params = this._chartData.technicalIndicatorParamOptions()[technicalIndicatorType] || [];
       var labels = keysAndValues.keys;
       var values = keysAndValues.values;
+
+      if (params && isArray(params) && params.length > 0) {
+        for (var i = params.length - 1; i > 0; i--) {
+          if (params[i] === '' || params[i] === 0) {
+            params.splice(i, 1);
+            labels.splice(i, 1);
+            values.splice(i, 1);
+          }
+        }
+      }
+
       var name = '';
 
       if (labels.length > 0) {
@@ -10732,7 +10759,7 @@ var Chart = /*#__PURE__*/function () {
   }, {
     key: "setTechnicalIndicatorParams",
     value: function setTechnicalIndicatorParams(technicalIndicatorType, params) {
-      this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, params);
+      this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, clone(params));
     }
     /**
      * 获取技术指标参数配置
@@ -11015,14 +11042,14 @@ var Chart = /*#__PURE__*/function () {
  */
 var instances = {};
 var idBase = 1;
-var errorMessage = 'Chart version is 5.2.2. Root dom is null, can not initialize the chart!!!';
+var errorMessage = 'Chart version is 5.2.4. Root dom is null, can not initialize the chart!!!';
 /**
  * 获取版本号
  * @returns {string}
  */
 
 function version() {
-  return '5.2.2';
+  return '5.2.4';
 }
 /**
  * 初始化

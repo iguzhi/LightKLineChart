@@ -56,8 +56,11 @@ calcIndicator[TechnicalIndicatorType.MA] = function (dataList, params) {
     const ma = {}
     const close = dataList[i].close
     for (let j = 0; j < paramsLength; j++) {
-      closeSums[j] = (closeSums[j] || 0) + close
       const p = params[j]
+      if (!p || p < 0) {
+        continue;
+      }
+      closeSums[j] = (closeSums[j] || 0) + close
       if (i < p) {
         ma[`ma${p}`] = closeSums[j] / (i + 1)
       } else {
@@ -86,13 +89,17 @@ calcIndicator[TechnicalIndicatorType.EMA] = function (dataList, params) {
     const ema = {}
     const close = dataList[i].close
     for (let j = 0; j < paramsLength; j++) {
+      const p = params[j]
+      if (!p || p < 0) {
+        continue;
+      }
       let emaValue
       if (i === 0) {
         emaValue = close
       } else {
-        emaValue = (2 * close + (params[j] - 1) * oldEmas[j]) / (params[j] + 1)
+        emaValue = (2 * close + (p - 1) * oldEmas[j]) / (p + 1)
       }
-      ema[`ema${params[j]}`] = emaValue
+      ema[`ema${p}`] = emaValue
       oldEmas[j] = emaValue
     }
     dataList[i].ema = ema
@@ -116,8 +123,11 @@ calcIndicator[TechnicalIndicatorType.VOL] = function (dataList, params) {
     const num = dataList[i].volume
     const vol = {}
     for (let j = 0; j < paramsLength; j++) {
-      volumeSums[j] = (volumeSums[j] || 0) + num
       const p = params[j]
+      if (!p || p < 0) {
+        continue;
+      }
+      volumeSums[j] = (volumeSums[j] || 0) + num
       if (i < p) {
         vol[`ma${p}`] = volumeSums[j] / (i + 1)
       } else {
