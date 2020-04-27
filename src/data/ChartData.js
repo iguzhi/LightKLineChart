@@ -244,19 +244,32 @@ export default class ChartData {
 
   /**
    * 计算指标
+   * @param series
    * @param technicalIndicatorType
-   * @returns {boolean}
    */
-  calcTechnicalIndicator (technicalIndicatorType) {
-    if (technicalIndicatorType === TechnicalIndicatorType.NO) {
-      return true
-    }
-    const calcFun = calcIndicator[technicalIndicatorType]
-    if (calcFun) {
-      this._dataList = calcFun(this._dataList, this._technicalIndicatorParamOptions[technicalIndicatorType])
-      return true
-    }
-    return false
+  calcTechnicalIndicator (series, technicalIndicatorType) {
+    new Promise((resolve, reject) => {
+      if (technicalIndicatorType === TechnicalIndicatorType.NO) {
+        resolve(true)
+      }
+      const calcFun = calcIndicator[technicalIndicatorType]
+      if (calcFun) {
+        this._dataList = calcFun(this._dataList, this._technicalIndicatorParamOptions[technicalIndicatorType])
+        resolve(true)
+      }
+      reject(new Error('Technical indicator type is error!'))
+    }).then(
+      _ => {
+        const level = this._to - this._from < this._totalDataSpace / this._dataSpace ? InvalidateLevel.FULL : InvalidateLevel.MAIN
+        if (isArray(series)) {
+          for (const s of series) {
+            s.invalidate(level)
+          }
+        } else {
+          series.invalidate(level)
+        }
+      }
+    ).catch(_ => {})
   }
 
   /**
@@ -291,24 +304,19 @@ export default class ChartData {
         this._more = isBoolean(more) ? more : true
         this._dataList = data.concat(this._dataList)
         this.adjustOffsetBarCount()
-        return InvalidateLevel.FULL
       } else {
         const dataSize = this._dataList.length
         if (pos >= dataSize) {
-          const level = this._to - this._from < this._totalDataSpace / this._dataSpace ? InvalidateLevel.FULL : InvalidateLevel.MAIN
           this._dataList.push(data)
           if (this._offsetRightBarCount < 0) {
             this._offsetRightBarCount -= 1
           }
           this.adjustOffsetBarCount()
-          return level
         } else {
           this._dataList[pos] = data
-          return InvalidateLevel.MAIN
         }
       }
     }
-    return InvalidateLevel.NONE
   }
 
   /**
