@@ -229,18 +229,18 @@ export default class TechnicalIndicatorFloatLayerView extends View {
     if (params && isArray(params) && params.length > 0) {
       for (let i = params.length - 1; i > 0; i--) {
         if (params[i] === '' || params[i] === 0) {
-          params.splice(i, 1);
-          labels.splice(i, 1);
-          values.splice(i, 1);
+          // params.splice(i, 1)
+          labels.splice(i, 1)
+          values.splice(i, 1)
         }
       }
     }
-    
+
     let name = ''
     if (labels.length > 0) {
       name = `${technicalIndicatorType}`
       if (params && isArray(params) && params.length > 0) {
-        name = `${name}(${params.join(',')})`
+        name = `${name}(${params.filter(value => value !== '' && value !== 0).join(',')})`
       }
       const decimal = this._chartData.precisionOptions()[technicalIndicatorType]
       values.forEach((value, index) => {

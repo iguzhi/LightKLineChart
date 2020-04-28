@@ -95,6 +95,7 @@ export default class ZoomScrollEventHandler extends EventHandler {
     if (!isTouch(event) || !this._checkEventPointX(event.localX)) {
       return
     }
+
     const real = this._translateCrossHairRealY(event.localY)
     if (!real) {
       return

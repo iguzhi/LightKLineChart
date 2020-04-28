@@ -58,7 +58,7 @@ calcIndicator[TechnicalIndicatorType.MA] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
-        continue;
+        continue
       }
       closeSums[j] = (closeSums[j] || 0) + close
       if (i < p) {
@@ -91,7 +91,7 @@ calcIndicator[TechnicalIndicatorType.EMA] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
-        continue;
+        continue
       }
       let emaValue
       if (i === 0) {
@@ -125,7 +125,7 @@ calcIndicator[TechnicalIndicatorType.VOL] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
-        continue;
+        continue
       }
       volumeSums[j] = (volumeSums[j] || 0) + num
       if (i < p) {

@@ -44,7 +44,7 @@ export default class Chart {
    * @param params
    */
   setTechnicalIndicatorParams (technicalIndicatorType, params) {
-    this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, clone(params))
+    this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, params)
   }
 
   /**

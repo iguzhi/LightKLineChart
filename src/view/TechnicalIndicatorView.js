@@ -76,7 +76,7 @@ export default class TechnicalIndicatorView extends View {
   _isFill (dataList, i) {
     const candleStick = this._chartData.styleOptions().candleStick
     const { open, close } = formatValue(dataList, i, {})
-    let isFill;
+    let isFill
     switch (candleStick.bar.style) {
       case CandleStickStyle.SOLID: {
         isFill = true
@@ -104,7 +104,7 @@ export default class TechnicalIndicatorView extends View {
       }
     }
 
-    return isFill;
+    return isFill
   }
 
   /**

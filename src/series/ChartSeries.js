@@ -68,7 +68,7 @@ export default class ChartSeries {
     this._chartContainer.style.outline = 'none'
     this._chartContainer.style.borderStyle = 'none'
     this._chartContainer.style.width = '100%'
-    this._chartContainer.style.cursor = 'crosshair'
+    this._chartContainer.style.cursor = 'none'
     this._chartContainer.tabIndex = 1
     container.appendChild(this._chartContainer)
   }
