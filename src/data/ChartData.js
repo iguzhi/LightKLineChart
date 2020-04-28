@@ -248,25 +248,27 @@ export default class ChartData {
    * @param technicalIndicatorType
    */
   calcTechnicalIndicator (series, technicalIndicatorType) {
-    new Promise((resolve, reject) => {
+    const task = new Promise((resolve, reject) => {
       if (technicalIndicatorType === TechnicalIndicatorType.NO) {
         resolve(true)
+      } else {
+        const calcFun = calcIndicator[technicalIndicatorType]
+        if (calcFun) {
+          this._dataList = calcFun(this._dataList, this._technicalIndicatorParamOptions[technicalIndicatorType])
+          resolve(true)
+        } else {
+          reject(new Error('Technical indicator type is error!'))
+        }
       }
-      const calcFun = calcIndicator[technicalIndicatorType]
-      if (calcFun) {
-        this._dataList = calcFun(this._dataList, this._technicalIndicatorParamOptions[technicalIndicatorType])
-        resolve(true)
-      }
-      reject(new Error('Technical indicator type is error!'))
-    }).then(
+    })
+    task.then(
       _ => {
-        const level = this._to - this._from < this._totalDataSpace / this._dataSpace ? InvalidateLevel.FULL : InvalidateLevel.MAIN
         if (isArray(series)) {
           for (const s of series) {
-            s.invalidate(level)
+            s.invalidate(InvalidateLevel.FULL)
           }
         } else {
-          series.invalidate(level)
+          series.invalidate(InvalidateLevel.FULL)
         }
       }
     ).catch(_ => {})
