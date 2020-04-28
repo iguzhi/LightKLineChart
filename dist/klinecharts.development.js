@@ -4250,17 +4250,11 @@ var TechnicalIndicatorView = /*#__PURE__*/function (_View) {
 
               var preKLineData = formatValue(dataList, i - 1, {});
               var preMacd = formatValue(preKLineData, 'macd', {}).macd;
-<<<<<<< HEAD
               var isFill = !((preMacd || preMacd === 0) && macd > preMacd);
               var macdBarOption = technicalIndicatorOptions.bar.macd;
               isFill = macdBarOption.disableStroke ? true : isFill;
 
               _this3._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill);
-=======
-              var isSolid = !((preMacd || preMacd === 0) && macd > preMacd);
-
-              _this3._drawBars(x, halfBarSpace, macd, isSolid);
->>>>>>> b670701e0b075ad8f80552892b8e681af8b3c8c0
 
               break;
             }
@@ -4805,7 +4799,7 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
       if (params && isArray(params) && params.length > 0) {
         for (var i = params.length - 1; i > 0; i--) {
           if (params[i] === '' || params[i] === 0) {
-            params.splice(i, 1);
+            // params.splice(i, 1)
             labels.splice(i, 1);
             values.splice(i, 1);
           }
@@ -4818,7 +4812,9 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
         name = "".concat(technicalIndicatorType);
 
         if (params && isArray(params) && params.length > 0) {
-          name = "".concat(name, "(").concat(params.join(','), ")");
+          name = "".concat(name, "(").concat(params.filter(function (value) {
+            return value !== '' && value !== 0;
+          }).join(','), ")");
         }
 
         var decimal = this._chartData.precisionOptions()[technicalIndicatorType];
@@ -9908,7 +9904,10 @@ var ChartEvent = /*#__PURE__*/function () {
   }, {
     key: "_mouseUpEvent",
     value: function _mouseUpEvent(event) {
-      this._target.style.cursor = 'crosshair';
+      if (this._checkZoomScroll()) {
+        this._target.style.cursor = 'none';
+      }
+
       event.localX -= this._seriesSize.contentLeft;
 
       this._graphicMarkEventHandler.mouseUpEvent(event);
@@ -9933,6 +9932,8 @@ var ChartEvent = /*#__PURE__*/function () {
 
       if (this._checkZoomScroll()) {
         this._zoomScrollEventHandler.mouseMoveEvent(event);
+      } else {
+        this._target.style.cursor = 'default';
       }
     }
   }, {
@@ -9954,13 +9955,14 @@ var ChartEvent = /*#__PURE__*/function () {
   }, {
     key: "_mouseDownEvent",
     value: function _mouseDownEvent(event) {
-      this._target.style.cursor = 'pointer';
       event.localX -= this._seriesSize.contentLeft;
 
       this._graphicMarkEventHandler.mouseDownEvent(event);
 
       if (this._checkZoomScroll()) {
         this._zoomScrollEventHandler.mouseDownEvent(event);
+
+        this._target.style.cursor = 'pointer';
       }
     }
   }, {
@@ -9973,15 +9975,12 @@ var ChartEvent = /*#__PURE__*/function () {
   }, {
     key: "_pressedMouseMoveEvent",
     value: function _pressedMouseMoveEvent(event) {
-      event.localX -= this._seriesSize.contentLeft;
-
       if (this._chartData.dragGraphicMarkFlag()) {
-        this._graphicMarkEventHandler.pressedMouseMoveEvent(event); // 这里判断一下，如果是在拖拽图形标记，让十字光标不显示
+        this._graphicMarkEventHandler.pressedMouseMoveEvent(event);
+      }
 
-
-        if (this._chartData.crossHairSeriesTag() !== null) {
-          this._chartData.setCrossHairSeriesTag(null);
-        }
+      if (this._chartData.crossHairSeriesTag() !== null) {
+        this._chartData.setCrossHairSeriesTag(null);
       }
 
       if (this._checkZoomScroll()) {
@@ -10070,7 +10069,7 @@ var ChartSeries = /*#__PURE__*/function () {
       this._chartContainer.style.outline = 'none';
       this._chartContainer.style.borderStyle = 'none';
       this._chartContainer.style.width = '100%';
-      this._chartContainer.style.cursor = 'crosshair';
+      this._chartContainer.style.cursor = 'none';
       this._chartContainer.tabIndex = 1;
       container.appendChild(this._chartContainer);
     }
@@ -10759,7 +10758,7 @@ var Chart = /*#__PURE__*/function () {
   }, {
     key: "setTechnicalIndicatorParams",
     value: function setTechnicalIndicatorParams(technicalIndicatorType, params) {
-      this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, clone(params));
+      this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, params);
     }
     /**
      * 获取技术指标参数配置
@@ -11042,14 +11041,14 @@ var Chart = /*#__PURE__*/function () {
  */
 var instances = {};
 var idBase = 1;
-var errorMessage = 'Chart version is 5.2.4. Root dom is null, can not initialize the chart!!!';
+var errorMessage = 'Chart version is 5.2.5. Root dom is null, can not initialize the chart!!!';
 /**
  * 获取版本号
  * @returns {string}
  */
 
 function version() {
-  return '5.2.4';
+  return '5.2.5';
 }
 /**
  * 初始化
