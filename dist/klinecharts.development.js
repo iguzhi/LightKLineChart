@@ -2749,15 +2749,19 @@ function formatPrecision(value) {
 
 function formatBigNumber(value) {
   if (isNumber(+value)) {
-    if (value > 50000) {
-      return "".concat(+(value / 1000).toFixed(1), "K");
+    if (value > 1000000000) {
+      return "".concat(+(value / 1000000000).toFixed(3), "B");
     }
 
-    if (value > 5000000) {
+    if (value > 1000000) {
       return "".concat(+(value / 1000000).toFixed(3), "M");
     }
 
-    return "".concat(value);
+    if (value > 1000) {
+      return "".concat(+(value / 1000).toFixed(3), "K");
+    }
+
+    return value;
   }
 
   return '--';
@@ -4721,9 +4725,10 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
       this._ctx.fillText(nameText, labelX, labelY);
 
       labelX += textMarginLeft + nameTextWidth;
+      var isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL;
 
       for (var i = 0; i < labels.length; i++) {
-        var text = "".concat(labels[i].toUpperCase(), ": ").concat(values[i] || '--');
+        var text = "".concat(labels[i].toUpperCase(), ": ").concat((isVol ? formatBigNumber(values[i]) : values[i]) || '--');
         var textWidth = calcTextWidth(this._ctx, text);
         this._ctx.fillStyle = colors[i % colorSize] || textColor;
 
@@ -5000,9 +5005,10 @@ var YAxisView = /*#__PURE__*/function (_View) {
       this._ctx.textBaseline = 'middle';
       this._ctx.font = getFont(tickText.size, tickText.family);
       this._ctx.fillStyle = tickText.color;
+      var isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL;
 
       this._yAxis.ticks().forEach(function (tick) {
-        _this3._ctx.fillText(tick.v, labelX, tick.y);
+        _this3._ctx.fillText(isVol ? formatBigNumber(tick.v) : tick.v, labelX, tick.y);
       });
 
       this._ctx.textAlign = 'left';
@@ -5116,6 +5122,10 @@ var YAxisView = /*#__PURE__*/function (_View) {
         text = "".concat(((value - fromClose) / fromClose * 100).toFixed(2), "%");
       } else {
         text = formatPrecision(value, precision);
+
+        if (this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL) {
+          text = formatBigNumber(text);
+        }
       }
 
       this._ctx.font = getFont(textSize, textFamily);
@@ -5205,9 +5215,15 @@ var YAxisFloatLayerView = /*#__PURE__*/function (_View) {
 
         yAxisDataLabel = "".concat(((value - fromClose) / fromClose * 100).toFixed(2), "%");
       } else {
-        var precision = this._chartData.precisionOptions()[this._yAxis.isCandleStickYAxis() ? 'price' : this._additionalDataProvider.technicalIndicatorType()];
+        var technicalIndicatorType = this._additionalDataProvider.technicalIndicatorType();
+
+        var precision = this._chartData.precisionOptions()[this._yAxis.isCandleStickYAxis() ? 'price' : technicalIndicatorType];
 
         yAxisDataLabel = formatPrecision(value, precision);
+
+        if (technicalIndicatorType === TechnicalIndicatorType.VOL) {
+          yAxisDataLabel = formatBigNumber(yAxisDataLabel);
+        }
       }
 
       var textSize = crossHairHorizontalText.size;
@@ -5543,7 +5559,7 @@ var YAxis = /*#__PURE__*/function (_Axis) {
 
           if (_y > textHeight && _y < this._height - textHeight) {
             optimalTicks.push({
-              v: isPercentageAxis ? "".concat((+v).toFixed(2), "%") : formatBigNumber(v),
+              v: isPercentageAxis ? "".concat((+v).toFixed(2), "%") : v,
               y: _y
             });
           }
@@ -6318,7 +6334,7 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
         var value = values[i] || '--';
         var valueText;
 
-        if (_typeof(value) === 'object') {
+        if (isObject(value)) {
           valueText = value.value || '--';
           _this._ctx.fillStyle = value.color || textColor;
         } else {
@@ -6353,7 +6369,7 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
         var value = baseValues[i] || '--';
         var v = value;
 
-        if (_typeof(value) === 'object') {
+        if (isObject(value)) {
           v = value.value || '--';
         }
 
@@ -6435,7 +6451,7 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
           var text;
           _this2._ctx.fillStyle = value.color || baseTextColor;
 
-          if (_typeof(value) === 'object') {
+          if (isObject(value)) {
             text = value.value || '--';
           } else {
             text = value;
@@ -6533,7 +6549,7 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
 
             case values.length - 1:
               {
-                values[index] = formatPrecision(value, precisionOptions.volume);
+                values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume));
                 break;
               }
 
