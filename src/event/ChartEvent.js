@@ -106,7 +106,6 @@ export default class ChartEvent {
     event.localX -= this._seriesSize.contentLeft
     this._graphicMarkEventHandler.mouseDownEvent(event)
     if (this._checkZoomScroll()) {
-
       this._zoomScrollEventHandler.mouseDownEvent(event)
       this._target.style.cursor = 'pointer'
     }
@@ -120,14 +119,12 @@ export default class ChartEvent {
   _pressedMouseMoveEvent (event) {
     if (this._chartData.dragGraphicMarkFlag()) {
       this._graphicMarkEventHandler.pressedMouseMoveEvent(event)
-
     }
 
     if (this._chartData.crossHairSeriesTag() !== null) {
       this._chartData.setCrossHairSeriesTag(null)
     }
     if (this._checkZoomScroll()) {
-
       this._zoomScrollEventHandler.pressedMouseMoveEvent(event)
     }
   }
