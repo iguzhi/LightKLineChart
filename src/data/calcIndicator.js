@@ -58,6 +58,7 @@ calcIndicator[TechnicalIndicatorType.MA] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
+        ma[`ma${p}`] = NaN;
         continue
       }
       closeSums[j] = (closeSums[j] || 0) + close
@@ -91,6 +92,7 @@ calcIndicator[TechnicalIndicatorType.EMA] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
+        ema[`ema${p}`] = NaN
         continue
       }
       let emaValue
@@ -125,6 +127,7 @@ calcIndicator[TechnicalIndicatorType.VOL] = function (dataList, params) {
     for (let j = 0; j < paramsLength; j++) {
       const p = params[j]
       if (!p || p < 0) {
+        vol[`ma${p}`] = NaN
         continue
       }
       volumeSums[j] = (volumeSums[j] || 0) + num

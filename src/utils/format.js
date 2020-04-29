@@ -92,6 +92,9 @@ export function formatDate (timestamp, format, timezone) {
  * 格式化精度
  */
 export function formatPrecision (value, precision = 2) {
+  if (isNaN(value)) {
+    return value
+  }
   const v = +value
   if ((v || v === 0) && isNumber(v)) {
     return value.toFixed(precision)

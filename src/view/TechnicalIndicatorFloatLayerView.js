@@ -169,7 +169,10 @@ export default class TechnicalIndicatorFloatLayerView extends View {
     this._ctx.fillText(nameText, labelX, labelY)
     labelX += (textMarginLeft + nameTextWidth)
     for (let i = 0; i < labels.length; i++) {
-      const text = `${labels[i].toUpperCase()}: ${values[i] || '--'}`
+      if (!values[i]) {
+        continue
+      }
+      const text = `${labels[i].toUpperCase()}: ${values[i]}`
       const textWidth = calcTextWidth(this._ctx, text)
       this._ctx.fillStyle = colors[i % colorSize] || textColor
       this._ctx.fillText(text, labelX, labelY)
@@ -225,16 +228,6 @@ export default class TechnicalIndicatorFloatLayerView extends View {
     const params = this._chartData.technicalIndicatorParamOptions()[technicalIndicatorType] || []
     const labels = keysAndValues.keys
     const values = keysAndValues.values
-
-    if (params && isArray(params) && params.length > 0) {
-      for (let i = params.length - 1; i > 0; i--) {
-        if (params[i] === '' || params[i] === 0) {
-          // params.splice(i, 1)
-          labels.splice(i, 1)
-          values.splice(i, 1)
-        }
-      }
-    }
 
     let name = ''
     if (labels.length > 0) {
