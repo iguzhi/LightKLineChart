@@ -229,6 +229,7 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
       }
     } else {
       const precisionOptions = this._chartData.precisionOptions()
+      const language = this._chartData.styleOptions().language
       values = [
         formatValue(kLineData, 'timestamp'),
         formatValue(kLineData, 'open'),
@@ -244,7 +245,7 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
             break
           }
           case values.length - 1: {
-            values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume))
+            values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume), language)
             break
           }
           default: {

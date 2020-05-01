@@ -106,18 +106,36 @@ export function formatPrecision (value, precision = 2) {
  * 格式化大数据
  * @param value
  */
-export function formatBigNumber (value) {
-  if (isNumber(+value)) {
-    if (value > 1000000000) {
-      return `${+((value / 1000000000).toFixed(3))}B`
-    }
-    if (value > 1000000) {
-      return `${+((value / 1000000).toFixed(3))}M`
-    }
-    if (value > 1000) {
-      return `${+((value / 1000).toFixed(3))}K`
-    }
-    return value
+export function formatBigNumber (value, language = 'en') {
+  value = +value
+  if (isNumber(value)) {
+    return language === 'zh-CN' ? formatBigNumberInChinese(value) : formatBigNumberInEnglish(value)
   }
   return '--'
+}
+
+function formatBigNumberInEnglish (value) {
+  if (value > 1000000000) {
+    return `${(value / 1000000000).toFixed(3)}B`
+  }
+  if (value > 1000000) {
+    return `${(value / 1000000).toFixed(3)}M`
+  }
+  if (value > 10000) {
+    return `${(value / 1000).toFixed(3)}K`
+  }
+  return value
+}
+
+function formatBigNumberInChinese(value) {
+  if (value > 100000000) {
+    return `${(value / 100000000).toFixed(3)}亿`
+  }
+  if (value > 10000000) {
+    return `${(value / 10000000).toFixed(3)}千万`
+  }
+  if (value > 100000) {
+    return `${(value / 10000).toFixed(3)}万`
+  }
+  return value
 }

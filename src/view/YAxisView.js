@@ -90,6 +90,7 @@ export default class YAxisView extends View {
     if (!tickText.display) {
       return
     }
+    const language = this._chartData.styleOptions().language
     const tickLine = yAxisOptions.tickLine
     const tickLineDisplay = tickLine.display
     const tickLineLength = tickLine.length
@@ -119,7 +120,7 @@ export default class YAxisView extends View {
     this._ctx.fillStyle = tickText.color
     const isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL
     this._yAxis.ticks().forEach(tick => {
-      this._ctx.fillText(isVol ? formatBigNumber(tick.v) : tick.v, labelX, tick.y)
+      this._ctx.fillText(isVol ? formatBigNumber(tick.v, language) : tick.v, labelX, tick.y)
     })
     this._ctx.textAlign = 'left'
   }
@@ -220,7 +221,8 @@ export default class YAxisView extends View {
     } else {
       text = formatPrecision(value, precision)
       if (this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL) {
-        text = formatBigNumber(text)
+        const language = this._chartData.styleOptions().language
+        text = formatBigNumber(text, language)
       }
     }
     this._ctx.font = getFont(textSize, textFamily)

@@ -56,7 +56,8 @@ export default class YAxisFloatLayerView extends View {
       const precision = this._chartData.precisionOptions()[this._yAxis.isCandleStickYAxis() ? 'price' : technicalIndicatorType]
       yAxisDataLabel = formatPrecision(value, precision)
       if (technicalIndicatorType === TechnicalIndicatorType.VOL) {
-        yAxisDataLabel = formatBigNumber(yAxisDataLabel)
+        const language = this._chartData.styleOptions().language
+        yAxisDataLabel = formatBigNumber(yAxisDataLabel, language)
       }
     }
     const textSize = crossHairHorizontalText.size

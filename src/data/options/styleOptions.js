@@ -467,7 +467,13 @@ const defaultSeparator = {
   fill: true
 }
 
+/**
+ * 默认语言
+ */
+const language = 'en'
+
 export const defaultStyleOptions = {
+  language,
   grid: defaultGrid,
   candleStick: defaultCandleStick,
   realTime: defaultRealTime,

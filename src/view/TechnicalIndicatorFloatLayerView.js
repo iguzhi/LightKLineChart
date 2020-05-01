@@ -151,6 +151,7 @@ export default class TechnicalIndicatorFloatLayerView extends View {
    * @private
    */
   _drawTechnicalIndicatorPromptText (data, colors, offsetTop) {
+    const language = this._chartData.styleOptions().language
     const floatLayerPromptTechnicalIndicatorText = this._chartData.styleOptions().floatLayer.prompt.technicalIndicator.text
     const nameText = data.name
     const labels = data.labels
@@ -173,7 +174,7 @@ export default class TechnicalIndicatorFloatLayerView extends View {
       if (!values[i]) {
         continue
       }
-      const text = `${labels[i].toUpperCase()}: ${(isVol ? formatBigNumber(values[i]) : values[i])}`
+      const text = `${labels[i].toUpperCase()}: ${(isVol ? formatBigNumber(values[i], language) : values[i])}`
       const textWidth = calcTextWidth(this._ctx, text)
       this._ctx.fillStyle = colors[i % colorSize] || textColor
       this._ctx.fillText(text, labelX, labelY)
