@@ -5393,19 +5393,13 @@ var Axis = /*#__PURE__*/function () {
         var f = first;
 
         if (interval !== 0) {
-          while (f <= +last) {
+          while (f <= last) {
+            ticks[n] = {
+              v: f.toFixed(precision)
+            };
             ++n;
             f += interval;
           }
-        }
-
-        f = first;
-
-        for (var i = 0; i < n; i++) {
-          ticks[i] = {
-            v: f.toFixed(precision)
-          };
-          f += interval;
         }
       }
 
@@ -5414,7 +5408,7 @@ var Axis = /*#__PURE__*/function () {
   }, {
     key: "_nice",
     value: function _nice(value) {
-      var exponent = Math.floor(Math.log(value) / Math.log(10.0));
+      var exponent = Math.floor(Math.log(value) / Math.LN10);
       var exp10 = Math.pow(10.0, exponent);
       var f = value / exp10; // 1 <= f < 10
 
@@ -5424,10 +5418,14 @@ var Axis = /*#__PURE__*/function () {
         nf = 1;
       } else if (f < 2.5) {
         nf = 2;
-      } else if (f < 4) {
+      } else if (f < 3.5) {
         nf = 3;
-      } else if (f < 7) {
+      } else if (f < 4.5) {
+        nf = 4;
+      } else if (f < 5.5) {
         nf = 5;
+      } else if (f < 6.5) {
+        nf = 6;
       } else {
         nf = 8;
       }
@@ -5455,8 +5453,7 @@ var Axis = /*#__PURE__*/function () {
     value: function _round(x, precision) {
       if (precision == null) {
         precision = 10;
-      } // Avoid range error
-
+      }
 
       precision = Math.min(Math.max(0, precision), 20);
       x = (+x).toFixed(precision);
@@ -9252,12 +9249,11 @@ var XAxis = /*#__PURE__*/function (_Axis) {
           var timestamp = kLineData.timestamp;
           var label = formatDate(timestamp, 'hh:mm', timezone);
 
-          if (i <= tickLength - 1 - tickCountDif) {
-            var _nextPos = parseInt(ticks[i + tickCountDif].v, 10);
-
-            var nextKLineData = dataList[_nextPos];
-            var nextTimestamp = nextKLineData.timestamp;
-            label = this._optimalTickLabel(timestamp, nextTimestamp, timezone) || label;
+          if (i !== 0) {
+            var prePos = parseInt(ticks[i - tickCountDif].v, 10);
+            var preKLineData = dataList[prePos];
+            var preTimestamp = preKLineData.timestamp;
+            label = this._optimalTickLabel(timestamp, preTimestamp, timezone) || label;
           }
 
           var _x = this.convertToPixel(_pos);
@@ -9274,10 +9270,10 @@ var XAxis = /*#__PURE__*/function (_Axis) {
         if (optimalTickLength === 1) {
           optimalTicks[0].v = formatDate(optimalTicks[0].oV, 'YYYY-MM-DD hh:mm', timezone);
         } else {
-          var lastTimestamp = optimalTicks[optimalTickLength - 1].oV;
-          var lastV = optimalTicks[optimalTickLength - 1].v;
-          var secondLastTimestamp = optimalTicks[optimalTickLength - 2].oV;
-          optimalTicks[optimalTickLength - 1].v = this._optimalTickLabel(lastTimestamp, secondLastTimestamp, timezone) || lastV;
+          var firstTimestamp = optimalTicks[0].oV;
+          var firstV = optimalTicks[0].v;
+          var secondTimestamp = optimalTicks[1].oV;
+          optimalTicks[0].v = this._optimalTickLabel(firstTimestamp, secondTimestamp, timezone) || firstV;
         }
       }
 
@@ -11056,8 +11052,8 @@ var Chart = /*#__PURE__*/function () {
  * limitations under the License.
  */
 var instances = {};
-var idBase = 1;
-var errorMessage = 'Chart version is 5.2.5. Root dom is null, can not initialize the chart!!!';
+var chartBaseId = 1;
+var CHART_NAME_PREFIX = 'k_line_chart_';
 /**
  * 获取版本号
  * @returns {string}
@@ -11076,6 +11072,7 @@ function version() {
 
 function init(ds) {
   var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var errorMessage = 'Chart version is 5.2.0. Root dom is null, can not initialize the chart!!!';
   var container = ds;
 
   if (!container) {
@@ -11090,7 +11087,7 @@ function init(ds) {
     throw new Error(errorMessage);
   }
 
-  var instance = instances[container.chart_id || ''];
+  var instance = instances[container.chartId || ''];
 
   if (instance) {
     {
@@ -11100,10 +11097,10 @@ function init(ds) {
     return instance;
   }
 
-  var id = "k_line_chart_".concat(idBase++);
+  var id = "".concat(CHART_NAME_PREFIX).concat(chartBaseId++);
   var chart = new Chart(container, style);
   chart.id = id;
-  container.chart_id = id;
+  container.chartId = id;
   instances[id] = chart;
   return chart;
 }
@@ -11119,11 +11116,11 @@ function dispose(dcs) {
 
     if (typeof dcs === 'string') {
       dcs = document.getElementById(dcs) || document.getElementsByClassName(dcs);
-      id = dcs.chart_id;
+      id = dcs.chartId;
     }
 
     if (!id) {
-      id = dcs.chart_id;
+      id = dcs.chartId;
     }
 
     if (!id && dcs instanceof Chart) {

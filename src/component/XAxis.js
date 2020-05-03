@@ -61,11 +61,11 @@ export default class XAxis extends Axis {
         const kLineData = dataList[pos]
         const timestamp = kLineData.timestamp
         let label = formatDate(timestamp, 'hh:mm', timezone)
-        if (i <= tickLength - 1 - tickCountDif) {
-          const nextPos = parseInt(ticks[i + tickCountDif].v, 10)
-          const nextKLineData = dataList[nextPos]
-          const nextTimestamp = nextKLineData.timestamp
-          label = this._optimalTickLabel(timestamp, nextTimestamp, timezone) || label
+        if (i !== 0) {
+          const prePos = parseInt(ticks[i - tickCountDif].v, 10)
+          const preKLineData = dataList[prePos]
+          const preTimestamp = preKLineData.timestamp
+          label = this._optimalTickLabel(timestamp, preTimestamp, timezone) || label
         }
         const x = this.convertToPixel(pos)
         optimalTicks.push({ v: label, x, oV: timestamp })
@@ -74,10 +74,10 @@ export default class XAxis extends Axis {
       if (optimalTickLength === 1) {
         optimalTicks[0].v = formatDate(optimalTicks[0].oV, 'YYYY-MM-DD hh:mm', timezone)
       } else {
-        const lastTimestamp = optimalTicks[optimalTickLength - 1].oV
-        const lastV = optimalTicks[optimalTickLength - 1].v
-        const secondLastTimestamp = optimalTicks[optimalTickLength - 2].oV
-        optimalTicks[optimalTickLength - 1].v = this._optimalTickLabel(lastTimestamp, secondLastTimestamp, timezone) || lastV
+        const firstTimestamp = optimalTicks[0].oV
+        const firstV = optimalTicks[0].v
+        const secondTimestamp = optimalTicks[1].oV
+        optimalTicks[0].v = this._optimalTickLabel(firstTimestamp, secondTimestamp, timezone) || firstV
       }
     }
     return optimalTicks
