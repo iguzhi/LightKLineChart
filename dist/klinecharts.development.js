@@ -118,11 +118,13 @@ function _possibleConstructorReturn(self, call) {
 }
 
 function _createSuper(Derived) {
+  var hasNativeReflectConstruct = _isNativeReflectConstruct();
+
   return function () {
     var Super = _getPrototypeOf(Derived),
         result;
 
-    if (_isNativeReflectConstruct()) {
+    if (hasNativeReflectConstruct) {
       var NewTarget = _getPrototypeOf(this).constructor;
 
       result = Reflect.construct(Super, arguments, NewTarget);
@@ -181,7 +183,7 @@ function _unsupportedIterableToArray(o, minLen) {
   if (typeof o === "string") return _arrayLikeToArray(o, minLen);
   var n = Object.prototype.toString.call(o).slice(8, -1);
   if (n === "Object" && o.constructor) n = o.constructor.name;
-  if (n === "Map" || n === "Set") return Array.from(n);
+  if (n === "Map" || n === "Set") return Array.from(o);
   if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
 }
 
@@ -838,7 +840,13 @@ var defaultSeparator = {
   color: '#888888',
   fill: true
 };
+/**
+ * 默认语言
+ */
+
+var language = 'en';
 var defaultStyleOptions = {
+  language: language,
   grid: defaultGrid,
   candleStick: defaultCandleStick,
   realTime: defaultRealTime,
@@ -1129,6 +1137,7 @@ calcIndicator[TechnicalIndicatorType.MA] = function (dataList, params) {
       var p = params[j];
 
       if (!p || p < 0) {
+        ma["ma".concat(p)] = NaN;
         continue;
       }
 
@@ -1169,6 +1178,7 @@ calcIndicator[TechnicalIndicatorType.EMA] = function (dataList, params) {
       var p = params[j];
 
       if (!p || p < 0) {
+        ema["ema".concat(p)] = NaN;
         continue;
       }
 
@@ -1211,6 +1221,7 @@ calcIndicator[TechnicalIndicatorType.VOL] = function (dataList, params) {
       var p = params[j];
 
       if (!p || p < 0) {
+        vol["ma".concat(p)] = NaN;
         continue;
       }
 
@@ -2734,6 +2745,11 @@ function formatDate(timestamp, format, timezone) {
 
 function formatPrecision(value) {
   var precision = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
+
+  if (isNaN(value)) {
+    return value;
+  }
+
   var v = +value;
 
   if ((v || v === 0) && isNumber(v)) {
@@ -2748,23 +2764,46 @@ function formatPrecision(value) {
  */
 
 function formatBigNumber(value) {
-  if (isNumber(+value)) {
-    if (value > 1000000000) {
-      return "".concat(+(value / 1000000000).toFixed(3), "B");
-    }
+  var language = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'en';
+  value = +value;
 
-    if (value > 1000000) {
-      return "".concat(+(value / 1000000).toFixed(3), "M");
-    }
-
-    if (value > 1000) {
-      return "".concat(+(value / 1000).toFixed(3), "K");
-    }
-
-    return value;
+  if (isNumber(value)) {
+    return language === 'zh-CN' ? formatBigNumberInChinese(value) : formatBigNumberInEnglish(value);
   }
 
   return '--';
+}
+
+function formatBigNumberInEnglish(value) {
+  if (value > 1000000000) {
+    return "".concat((value / 1000000000).toFixed(3), "B");
+  }
+
+  if (value > 1000000) {
+    return "".concat((value / 1000000).toFixed(3), "M");
+  }
+
+  if (value > 10000) {
+    return "".concat((value / 1000).toFixed(3), "K");
+  }
+
+  return value;
+}
+
+function formatBigNumberInChinese(value) {
+  if (value > 100000000) {
+    return "".concat((value / 100000000).toFixed(3), "\u4EBF");
+  }
+
+  if (value > 10000000) {
+    return "".concat((value / 10000000).toFixed(3), "\u5343\u4E07");
+  }
+
+  if (value > 100000) {
+    return "".concat((value / 10000).toFixed(3), "\u4E07");
+  }
+
+  return value;
 }
 
 var InvalidateLevel = {
@@ -4705,6 +4744,8 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
   }, {
     key: "_drawTechnicalIndicatorPromptText",
     value: function _drawTechnicalIndicatorPromptText(data, colors, offsetTop) {
+      var language = this._chartData.styleOptions().language;
+
       var floatLayerPromptTechnicalIndicatorText = this._chartData.styleOptions().floatLayer.prompt.technicalIndicator.text;
 
       var nameText = data.name;
@@ -4728,7 +4769,11 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
       var isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL;
 
       for (var i = 0; i < labels.length; i++) {
-        var text = "".concat(labels[i].toUpperCase(), ": ").concat((isVol ? formatBigNumber(values[i]) : values[i]) || '--');
+        if (!values[i]) {
+          continue;
+        }
+
+        var text = "".concat(labels[i].toUpperCase(), ": ").concat(isVol ? formatBigNumber(values[i], language) : values[i]);
         var textWidth = calcTextWidth(this._ctx, text);
         this._ctx.fillStyle = colors[i % colorSize] || textColor;
 
@@ -4800,17 +4845,6 @@ var TechnicalIndicatorFloatLayerView = /*#__PURE__*/function (_View) {
       var params = this._chartData.technicalIndicatorParamOptions()[technicalIndicatorType] || [];
       var labels = keysAndValues.keys;
       var values = keysAndValues.values;
-
-      if (params && isArray(params) && params.length > 0) {
-        for (var i = params.length - 1; i > 0; i--) {
-          if (params[i] === '' || params[i] === 0) {
-            // params.splice(i, 1)
-            labels.splice(i, 1);
-            values.splice(i, 1);
-          }
-        }
-      }
-
       var name = '';
 
       if (labels.length > 0) {
@@ -4970,6 +5004,8 @@ var YAxisView = /*#__PURE__*/function (_View) {
         return;
       }
 
+      var language = this._chartData.styleOptions().language;
+
       var tickLine = yAxisOptions.tickLine;
       var tickLineDisplay = tickLine.display;
       var tickLineLength = tickLine.length;
@@ -5008,7 +5044,7 @@ var YAxisView = /*#__PURE__*/function (_View) {
       var isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL;
 
       this._yAxis.ticks().forEach(function (tick) {
-        _this3._ctx.fillText(isVol ? formatBigNumber(tick.v) : tick.v, labelX, tick.y);
+        _this3._ctx.fillText(isVol ? formatBigNumber(tick.v, language) : tick.v, labelX, tick.y);
       });
 
       this._ctx.textAlign = 'left';
@@ -5124,7 +5160,9 @@ var YAxisView = /*#__PURE__*/function (_View) {
         text = formatPrecision(value, precision);
 
         if (this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL) {
-          text = formatBigNumber(text);
+          var language = this._chartData.styleOptions().language;
+
+          text = formatBigNumber(text, language);
         }
       }
 
@@ -5222,7 +5260,9 @@ var YAxisFloatLayerView = /*#__PURE__*/function (_View) {
         yAxisDataLabel = formatPrecision(value, precision);
 
         if (technicalIndicatorType === TechnicalIndicatorType.VOL) {
-          yAxisDataLabel = formatBigNumber(yAxisDataLabel);
+          var language = this._chartData.styleOptions().language;
+
+          yAxisDataLabel = formatBigNumber(yAxisDataLabel, language);
         }
       }
 
@@ -6535,6 +6575,8 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
       } else {
         var precisionOptions = this._chartData.precisionOptions();
 
+        var language = this._chartData.styleOptions().language;
+
         values = [formatValue(kLineData, 'timestamp'), formatValue(kLineData, 'open'), formatValue(kLineData, 'close'), formatValue(kLineData, 'high'), formatValue(kLineData, 'low'), formatValue(kLineData, 'volume')];
         values.forEach(function (value, index) {
           switch (index) {
@@ -6546,7 +6588,7 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
 
             case values.length - 1:
               {
-                values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume));
+                values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume), language);
                 break;
               }
 
@@ -11060,7 +11102,7 @@ var CHART_NAME_PREFIX = 'k_line_chart_';
  */
 
 function version() {
-  return '5.2.5';
+  return '5.2.6';
 }
 /**
  * 初始化
@@ -11072,7 +11114,7 @@ function version() {
 
 function init(ds) {
   var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  var errorMessage = 'Chart version is 5.2.0. Root dom is null, can not initialize the chart!!!';
+  var errorMessage = 'Chart version is 5.2.6. Root dom is null, can not initialize the chart!!!';
   var container = ds;
 
   if (!container) {
