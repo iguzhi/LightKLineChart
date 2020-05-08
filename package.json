@@ -28,13 +28,15 @@
   "license": "Apache-2.0",
   "private": false,
   "scripts": {
-    "build": "node_modules/.bin/rollup -c ./config/rollup.config.js",
+    "lint": "./node_modules/.bin/eslint src",
+    "build": "./node_modules/.bin/rollup -c ./config/rollup.config.js",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d homepage"
   },
   "devDependencies": {
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",
+    "@rollup/plugin-babel": "^5.0.0",
     "@rollup/plugin-replace": "^2.3.2",
     "babel-eslint": "^10.0.3",
     "eslint": "^6.5.1",
@@ -45,8 +47,8 @@
     "eslint-plugin-standard": "^4.0.1",
     "gh-pages": "^2.2.0",
     "rollup": "^2.7.1",
-    "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-filesize": "^6.2.1",
+    "rollup-plugin-progress": "^1.1.1",
     "rollup-plugin-terser": "^5.3.0",
     "typescript": "^3.6.4"
   },

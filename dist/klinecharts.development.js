@@ -5591,6 +5591,7 @@ var YAxis = /*#__PURE__*/function (_Axis) {
 
         for (var i = 0; i < tickLength; i += tickCountDif) {
           var v = ticks[i].v;
+          v = +v === 0 ? '0' : v;
 
           var _y = this._innerConvertToPixel(+v);
 
@@ -5656,9 +5657,6 @@ var YAxis = /*#__PURE__*/function (_Axis) {
       }
 
       if (minMaxArray[0] !== Infinity && minMaxArray[1] !== -Infinity) {
-        minMaxArray[0] = Math.round(minMaxArray[0] * 1000000) / 1000000;
-        minMaxArray[1] = Math.round(minMaxArray[1] * 1000000) / 1000000;
-
         if (this.isPercentageYAxis()) {
           var fromClose = dataList[from].close;
           this._minValue = (minMaxArray[0] - fromClose) / fromClose * 100;
@@ -10750,7 +10748,6 @@ var ChartSeries = /*#__PURE__*/function () {
 
       var candleStickSeriesHeight = this._candleStickSeries.height();
 
-      ctx.drawImage(this._candleStickSeries.getImage(includeFloatLayer, includeGraphicMark), 0, offsetTop, width, candleStickSeriesHeight);
       ctx.drawImage(this._candleStickSeries.getImage(includeFloatLayer, includeGraphicMark), 0, offsetTop, width, candleStickSeriesHeight);
       offsetTop += candleStickSeriesHeight;
 
