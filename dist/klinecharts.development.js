@@ -2662,14 +2662,13 @@ function formatValue(data, key) {
  * @returns {string}
  */
 
-var locales = 'en-us';
 function formatDate(timestamp, format, timezone) {
   if (timestamp && isNumber(timestamp)) {
     var date = new Date(timestamp);
     var dateTimeString;
 
     try {
-      dateTimeString = new Intl.DateTimeFormat(locales, {
+      dateTimeString = new Intl.DateTimeFormat('en', {
         hour12: false,
         timeZone: timezone,
         year: 'numeric',
@@ -2679,7 +2678,7 @@ function formatDate(timestamp, format, timezone) {
         minute: 'numeric'
       }).format(date);
     } catch (e) {
-      dateTimeString = new Intl.DateTimeFormat(locales, {
+      dateTimeString = new Intl.DateTimeFormat('en', {
         hour12: false,
         year: 'numeric',
         month: 'numeric',
@@ -6470,35 +6469,36 @@ var CandleStickFloatLayerView = /*#__PURE__*/function (_TechnicalIndicatorFl) {
 
       this._ctx.fill();
 
+      var baseLabelX = rectX + rectBorderSize + rectPaddingLeft + baseTextMarginLeft;
+      var labelY = rectY + rectBorderSize + rectPaddingTop; // 开始渲染基础数据文字
+
+      this._ctx.font = getFont(baseTextSize, floatLayerPromptCandleStick.text.family);
+      baseLabels.forEach(function (label, i) {
+        labelY += baseTextMarginTop;
+        _this2._ctx.textAlign = 'left';
+        _this2._ctx.fillStyle = baseTextColor;
+
+        _this2._ctx.fillText("".concat(label, ": "), baseLabelX, labelY);
+
+        var value = baseValues[i] || '--';
+        var text;
+        _this2._ctx.fillStyle = value.color || baseTextColor;
+
+        if (isObject(value)) {
+          text = value.value || '--';
+        } else {
+          text = value;
+        }
+
+        _this2._ctx.textAlign = 'right';
+
+        _this2._ctx.fillText(text, rectX + rectWidth - rectBorderSize - baseTextMarginRight - rectPaddingRight, labelY);
+
+        labelY += baseTextSize + baseTextMarginBottom;
+      });
+
       if (isCandleStick) {
-        var baseLabelX = rectX + rectBorderSize + rectPaddingLeft + baseTextMarginLeft;
-        var labelY = rectY + rectBorderSize + rectPaddingTop; // 开始渲染基础数据文字
-
-        this._ctx.font = getFont(baseTextSize, floatLayerPromptCandleStick.text.family);
-        baseLabels.forEach(function (label, i) {
-          labelY += baseTextMarginTop;
-          _this2._ctx.textAlign = 'left';
-          _this2._ctx.fillStyle = baseTextColor;
-
-          _this2._ctx.fillText("".concat(label, ": "), baseLabelX, labelY);
-
-          var value = baseValues[i] || '--';
-          var text;
-          _this2._ctx.fillStyle = value.color || baseTextColor;
-
-          if (isObject(value)) {
-            text = value.value || '--';
-          } else {
-            text = value;
-          }
-
-          _this2._ctx.textAlign = 'right';
-
-          _this2._ctx.fillText(text, rectX + rectWidth - rectBorderSize - baseTextMarginRight - rectPaddingRight, labelY);
-
-          labelY += baseTextSize + baseTextMarginBottom;
-        }); // 开始渲染指标数据文字
-
+        // 开始渲染指标数据文字
         var technicalIndicatorOptions = this._chartData.styleOptions().technicalIndicator;
 
         var colors = technicalIndicatorOptions.line.colors;
@@ -10132,6 +10132,11 @@ var ChartSeries = /*#__PURE__*/function () {
     value: function _initChartContainer(container) {
       this._container = container;
       this._chartContainer = document.createElement('div');
+      this._chartContainer.style.userSelect = 'none';
+      this._chartContainer.style.webkitUserSelect = 'none';
+      this._chartContainer.style.msUserSelect = 'none';
+      this._chartContainer.style.MozUserSelect = 'none';
+      this._chartContainer.style.webkitTapHighlightColor = 'transparent';
       this._chartContainer.style.position = 'relative';
       this._chartContainer.style.outline = 'none';
       this._chartContainer.style.borderStyle = 'none';
@@ -11118,7 +11123,7 @@ var CHART_NAME_PREFIX = 'k_line_chart_';
  */
 
 function version() {
-  return '5.2.6';
+  return '5.2.7';
 }
 /**
  * 初始化
@@ -11130,7 +11135,7 @@ function version() {
 
 function init(ds) {
   var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  var errorMessage = 'Chart version is 5.2.6. Root dom is null, can not initialize the chart!!!';
+  var errorMessage = 'Chart version is 5.2.7. Root dom is null, can not initialize the chart!!!';
   var container = ds;
 
   if (!container) {
