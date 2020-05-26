@@ -12,13 +12,14 @@
  * limitations under the License.
  */
 
-import { isArray, isObject, merge, clone, isFunction, isBoolean, isNumber } from '../utils/typeChecks'
+import { isArray, isObject, merge, clone, isFunction, isBoolean, isNumber, isValid } from '../utils/typeChecks'
 import { defaultStyleOptions } from './options/styleOptions'
-import { defaultTechnicalIndicatorParamOptions, TechnicalIndicatorType } from './options/technicalIndicatorParamOptions'
-import { defaultPrecisionOptions } from './options/precisionOptions'
 
-import calcIndicator from './calcIndicator'
+import technicalIndicatorCalcParams from './technicalindicator/technicalIndicatorCalcParams'
+
 import { formatValue } from '../utils/format'
+import { createNewTechnicalIndicator, createTechnicalIndicators } from './technicalindicator/technicalIndicatorControl'
+import { DEV } from '../utils/env'
 
 export const InvalidateLevel = {
   NONE: 0,
@@ -55,12 +56,22 @@ export default class ChartData {
     // 样式配置
     this._styleOptions = clone(defaultStyleOptions)
     merge(this._styleOptions, styleOptions)
-    // 指标参数配置
-    this._technicalIndicatorParamOptions = clone(defaultTechnicalIndicatorParamOptions)
-    // 精度配置
-    this._precisionOptions = clone(defaultPrecisionOptions)
-    // 时区
-    this._timezone = null
+
+    // 技术指标计算参数集合
+    this._technicalIndicatorCalcParams = clone(technicalIndicatorCalcParams)
+    // 所有技术指标类集合
+    this._technicalIndicators = createTechnicalIndicators()
+
+    // 价格精度
+    this._pricePrecision = 2
+    // 数量精度
+    this._volumePrecision = 0
+
+    this._dateTimeFormat = new Intl.DateTimeFormat(
+      'en', {
+        hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+      }
+    )
 
     // 数据源
     this._dataList = []
@@ -91,8 +102,8 @@ export default class ChartData {
 
     // 十字光标位置
     this._crossHairPoint = null
-    // 标识十字光标在哪个series
-    this._crossHairSeriesTag = null
+    // 标识十字光标在哪个pane
+    this._crossHairPaneTag = null
     // 用来记录开始拖拽时向右偏移的数量
     this._preOffsetRightBarCount = 0
 
@@ -179,33 +190,52 @@ export default class ChartData {
     return this._styleOptions
   }
 
+  /**
+   * 设置样式配置
+   * @param options
+   */
   applyStyleOptions (options) {
     merge(this._styleOptions, options)
   }
 
   /**
-   * 获取计算指标参数配置
+   * 获取技术指标计算参数结合
+   * @returns {function(Array<string>, string, string): Promise}
    */
-  technicalIndicatorParamOptions () {
-    return this._technicalIndicatorParamOptions
+  technicalIndicatorCalcParams () {
+    return this._technicalIndicatorCalcParams
   }
 
   /**
-   * 加载技术指标参数
+   * 根据指标类型获取指标类
    * @param technicalIndicatorType
-   * @param params
    */
-  applyTechnicalIndicatorParams (technicalIndicatorType, params = []) {
-    if (this._technicalIndicatorParamOptions.hasOwnProperty(technicalIndicatorType)) {
-      this._technicalIndicatorParamOptions[technicalIndicatorType] = params
-    }
+  technicalIndicator (technicalIndicatorType) {
+    return this._technicalIndicators[technicalIndicatorType]
   }
 
   /**
-   * 精度配置
+   * 价格精度
+   * @returns {number}
    */
-  precisionOptions () {
-    return this._precisionOptions
+  pricePrecision () {
+    return this._pricePrecision
+  }
+
+  /**
+   * 数量精度
+   * @returns {number}
+   */
+  volumePrecision () {
+    return this._volumePrecision
+  }
+
+  /**
+   * 获取时间格式化
+   * @returns {Intl.DateTimeFormat | Intl.DateTimeFormat}
+   */
+  dateTimeFormat () {
+    return this._dateTimeFormat
   }
 
   /**
@@ -213,7 +243,21 @@ export default class ChartData {
    * @param timezone
    */
   setTimezone (timezone) {
-    this._timezone = timezone
+    let dateTimeFormat
+    try {
+      dateTimeFormat = new Intl.DateTimeFormat(
+        'en', {
+          hour12: false, timeZone: timezone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'
+        }
+      )
+    } catch (e) {
+      if (DEV) {
+        console.warn(e.message)
+      }
+    }
+    if (dateTimeFormat) {
+      this._dateTimeFormat = dateTimeFormat
+    }
   }
 
   /**
@@ -221,7 +265,7 @@ export default class ChartData {
    * @returns {null}
    */
   timezone () {
-    return this._timezone
+    return this._dateTimeFormat.resolvedOptions().timeZone
   }
 
   /**
@@ -230,48 +274,12 @@ export default class ChartData {
    * @param volumePrecision
    */
   applyPrecision (pricePrecision, volumePrecision) {
-    if ((pricePrecision || pricePrecision === 0) && !(pricePrecision < 0)) {
-      this._precisionOptions.price = pricePrecision
-      this._precisionOptions[TechnicalIndicatorType.MA] = pricePrecision
-      this._precisionOptions[TechnicalIndicatorType.BOLL] = pricePrecision
-      this._precisionOptions[TechnicalIndicatorType.SAR] = pricePrecision
+    if (isValid(pricePrecision) && isNumber(pricePrecision) && pricePrecision >= 0) {
+      this._pricePrecision = pricePrecision
     }
-    if ((volumePrecision || volumePrecision === 0) && !(volumePrecision < 0)) {
-      this._precisionOptions.volume = volumePrecision
-      this._precisionOptions[TechnicalIndicatorType.VOL] = volumePrecision
+    if (isValid(volumePrecision) && isNumber(volumePrecision) && volumePrecision >= 0) {
+      this._volumePrecision = volumePrecision
     }
-  }
-
-  /**
-   * 计算指标
-   * @param series
-   * @param technicalIndicatorType
-   */
-  calcTechnicalIndicator (series, technicalIndicatorType) {
-    const task = new Promise((resolve, reject) => {
-      if (technicalIndicatorType === TechnicalIndicatorType.NO) {
-        resolve(true)
-      } else {
-        const calcFun = calcIndicator[technicalIndicatorType]
-        if (calcFun) {
-          this._dataList = calcFun(this._dataList, this._technicalIndicatorParamOptions[technicalIndicatorType])
-          resolve(true)
-        } else {
-          reject(new Error('Technical indicator type is error!'))
-        }
-      }
-    })
-    task.then(
-      _ => {
-        if (isArray(series)) {
-          for (const s of series) {
-            s.invalidate(InvalidateLevel.FULL)
-          }
-        } else {
-          series.invalidate(InvalidateLevel.FULL)
-        }
-      }
-    ).catch(_ => {})
   }
 
   /**
@@ -422,19 +430,19 @@ export default class ChartData {
   }
 
   /**
-   * 获取十字光标点所在的series的标识
+   * 获取十字光标点所在的pane的标识
    * @returns {null}
    */
-  crossHairSeriesTag () {
-    return this._crossHairSeriesTag
+  crossHairPaneTag () {
+    return this._crossHairPaneTag
   }
 
   /**
-   * 设置十字光标点所在的series的标识
+   * 设置十字光标点所在的pane的标识
    * @param tag
    */
-  setCrossHairSeriesTag (tag) {
-    this._crossHairSeriesTag = tag
+  setCrossHairPaneTag (tag) {
+    this._crossHairPaneTag = tag
     this._invalidateHandler(InvalidateLevel.FLOAT_LAYER)
   }
 
@@ -461,9 +469,6 @@ export default class ChartData {
     const distanceBarCount = distance / this._dataSpace
     this._offsetRightBarCount = this._preOffsetRightBarCount - distanceBarCount
     this.adjustOffsetBarCount()
-    if (distanceBarCount > 0 && this._from === 0) {
-      this._loadMoreHandler()
-    }
     this._invalidateHandler()
   }
 
@@ -519,6 +524,9 @@ export default class ChartData {
     }
     if (this._from < 0) {
       this._from = 0
+    }
+    if (this._from === 0) {
+      this._loadMoreHandler()
     }
   }
 
@@ -616,5 +624,42 @@ export default class ChartData {
       }
     }
     return false
+  }
+
+  /**
+   * 添加一个自定义指标
+   * @param technicalIndicatorInfo
+   */
+  addCustomTechnicalIndicator (technicalIndicatorInfo) {
+    const NewTechnicalIndicator = createNewTechnicalIndicator(technicalIndicatorInfo || {})
+    if (NewTechnicalIndicator) {
+      const name = technicalIndicatorInfo.name
+      // 将计算参数，放入参数集合
+      this._technicalIndicatorCalcParams[name] = technicalIndicatorInfo.calcParams || []
+      // 将生成的新的指标类放入集合
+      this._technicalIndicators[name] = NewTechnicalIndicator
+    }
+  }
+
+  /**
+   * 计算指标
+   * @param pane
+   */
+  calcTechnicalIndicator (pane) {
+    Promise.resolve().then(
+      _ => {
+        const technicalIndicator = pane.technicalIndicator()
+        if (technicalIndicator) {
+          technicalIndicator.setCalcParams(this._technicalIndicatorCalcParams[technicalIndicator.name])
+          if (technicalIndicator.isPriceTechnicalIndicator) {
+            technicalIndicator.precision = this._pricePrecision
+          } else if (technicalIndicator.isVolumeTechnicalIndicator) {
+            technicalIndicator.precision = this._volumePrecision
+          }
+          technicalIndicator.result = technicalIndicator.calcTechnicalIndicator(this._dataList, technicalIndicator.calcParams) || []
+        }
+        pane.invalidate(InvalidateLevel.FULL)
+      }
+    )
   }
 }

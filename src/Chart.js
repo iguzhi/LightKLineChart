@@ -12,13 +12,13 @@
  * limitations under the License.
  */
 
-import ChartSeries, { CANDLE_STICK_SERIES_TAG } from './series/ChartSeries'
+import ChartPane, { CANDLE_STICK_PANE_TAG } from './pane/ChartPane'
 import { isArray, clone } from './utils/typeChecks'
 import { GraphicMarkType } from './data/ChartData'
 
 export default class Chart {
   constructor (container, styleOptions) {
-    this._chartSeries = new ChartSeries(container, styleOptions)
+    this._chartPane = new ChartPane(container, styleOptions)
   }
 
   /**
@@ -26,8 +26,10 @@ export default class Chart {
    * @param options
    */
   setStyleOptions (options) {
-    this._chartSeries.chartData().applyStyleOptions(options)
-    this._chartSeries.measureSeriesSize()
+    if (options) {
+      this._chartPane.chartData().applyStyleOptions(options)
+      this._chartPane.measurePaneSize()
+    }
   }
 
   /**
@@ -35,7 +37,7 @@ export default class Chart {
    * @returns {[]|*[]}
    */
   getStyleOptions () {
-    return clone(this._chartSeries.chartData().styleOptions())
+    return clone(this._chartPane.chartData().styleOptions())
   }
 
   /**
@@ -44,14 +46,16 @@ export default class Chart {
    * @param params
    */
   setTechnicalIndicatorParams (technicalIndicatorType, params) {
-    this._chartSeries.applyTechnicalIndicatorParams(technicalIndicatorType, params)
+    if (technicalIndicatorType) {
+      this._chartPane.applyTechnicalIndicatorParams(technicalIndicatorType, params)
+    }
   }
 
   /**
    * 获取技术指标参数配置
    */
   getTechnicalIndicatorParamOptions () {
-    return clone(this._chartSeries.chartData().technicalIndicatorParamOptions())
+    return clone(this._chartPane.chartData().technicalIndicatorCalcParams())
   }
 
   /**
@@ -60,7 +64,7 @@ export default class Chart {
    * @param volumePrecision
    */
   setPrecision (pricePrecision, volumePrecision) {
-    this._chartSeries.chartData().applyPrecision(pricePrecision, volumePrecision)
+    this._chartPane.chartData().applyPrecision(pricePrecision, volumePrecision)
   }
 
   /**
@@ -68,14 +72,14 @@ export default class Chart {
    * @param timezone
    */
   setTimezone (timezone) {
-    this._chartSeries.setTimezone(timezone)
+    this._chartPane.setTimezone(timezone)
   }
 
   /**
    * 重置尺寸，总是会填充父容器
    */
   resize () {
-    this._chartSeries.measureSeriesSize()
+    this._chartPane.measurePaneSize()
   }
 
   /**
@@ -83,7 +87,7 @@ export default class Chart {
    * @param space
    */
   setOffsetRightSpace (space) {
-    this._chartSeries.chartData().setOffsetRightSpace(space)
+    this._chartPane.chartData().setOffsetRightSpace(space)
   }
 
   /**
@@ -91,7 +95,7 @@ export default class Chart {
    * @param barCount
    */
   setLeftMinVisibleBarCount (barCount) {
-    this._chartSeries.chartData().setLeftMinVisibleBarCount(barCount)
+    this._chartPane.chartData().setLeftMinVisibleBarCount(barCount)
   }
 
   /**
@@ -99,7 +103,7 @@ export default class Chart {
    * @param barCount
    */
   setRightMinVisibleBarCount (barCount) {
-    this._chartSeries.chartData().setRightMinVisibleBarCount(barCount)
+    this._chartPane.chartData().setRightMinVisibleBarCount(barCount)
   }
 
   /**
@@ -107,21 +111,21 @@ export default class Chart {
    * @param space
    */
   setDataSpace (space) {
-    this._chartSeries.chartData().setDataSpace(space)
+    this._chartPane.chartData().setDataSpace(space)
   }
 
   /**
    * 清空数据
    */
   clearData () {
-    this._chartSeries.chartData().clearDataList()
+    this._chartPane.chartData().clearDataList()
   }
 
   /**
    * 获取数据源
    */
   getDataList () {
-    return this._chartSeries.chartData().dataList()
+    return this._chartPane.chartData().dataList()
   }
 
   /**
@@ -130,7 +134,7 @@ export default class Chart {
    * @param more
    */
   applyNewData (dataList, more) {
-    this._chartSeries.applyNewData(dataList, more)
+    this._chartPane.applyNewData(dataList, more)
   }
 
   /**
@@ -139,7 +143,7 @@ export default class Chart {
    * @param more
    */
   applyMoreData (dataList, more) {
-    this._chartSeries.applyMoreData(dataList, more)
+    this._chartPane.applyMoreData(dataList, more)
   }
 
   /**
@@ -147,7 +151,7 @@ export default class Chart {
    * @param data
    */
   updateData (data) {
-    this._chartSeries.updateData(data)
+    this._chartPane.updateData(data)
   }
 
   /**
@@ -155,7 +159,7 @@ export default class Chart {
    * @param cb
    */
   loadMore (cb) {
-    this._chartSeries.chartData().loadMore(cb)
+    this._chartPane.chartData().loadMore(cb)
   }
 
   /**
@@ -163,7 +167,7 @@ export default class Chart {
    * @param type
    */
   setCandleStickChartType (type) {
-    this._chartSeries.setCandleStickSeriesType(type)
+    this._chartPane.setCandleStickChartType(type)
   }
 
   /**
@@ -171,7 +175,9 @@ export default class Chart {
    * @param technicalIndicatorType
    */
   setCandleStickTechnicalIndicatorType (technicalIndicatorType) {
-    this._chartSeries.setTechnicalIndicatorType(CANDLE_STICK_SERIES_TAG, technicalIndicatorType)
+    if (technicalIndicatorType) {
+      this._chartPane.setTechnicalIndicatorType(CANDLE_STICK_PANE_TAG, technicalIndicatorType)
+    }
   }
 
   /**
@@ -180,18 +186,28 @@ export default class Chart {
    * @param technicalIndicatorType
    */
   setTechnicalIndicatorType (tag, technicalIndicatorType) {
-    this._chartSeries.setTechnicalIndicatorType(tag, technicalIndicatorType)
+    if (tag) {
+      this._chartPane.setTechnicalIndicatorType(tag, technicalIndicatorType)
+    }
   }
 
   /**
-   * 添加一个技术指标
+   * 创建一个技术指标
    * @param technicalIndicatorType
    * @param height
    * @param dragEnabled
    * @returns {string}
    */
-  addTechnicalIndicator (technicalIndicatorType, height, dragEnabled) {
-    return this._chartSeries.createTechnicalIndicator(technicalIndicatorType, height, dragEnabled)
+  createTechnicalIndicator (technicalIndicatorType, height, dragEnabled) {
+    return this._chartPane.createTechnicalIndicator(technicalIndicatorType, height, dragEnabled)
+  }
+
+  /**
+   * 添加自定义技术指标
+   * @param technicalIndicatorInfo
+   */
+  addCustomTechnicalIndicator (technicalIndicatorInfo) {
+    this._chartPane.chartData().addCustomTechnicalIndicator(technicalIndicatorInfo)
   }
 
   /**
@@ -199,7 +215,9 @@ export default class Chart {
    * @param tag
    */
   removeTechnicalIndicator (tag) {
-    this._chartSeries.removeTechnicalIndicator(tag)
+    if (tag) {
+      this._chartPane.removeTechnicalIndicator(tag)
+    }
   }
 
   /**
@@ -207,9 +225,9 @@ export default class Chart {
    * @param type
    */
   addGraphicMark (type) {
-    const graphicMarkType = this._chartSeries.chartData().graphicMarkType()
+    const graphicMarkType = this._chartPane.chartData().graphicMarkType()
     if (graphicMarkType !== type) {
-      const graphicMarkDatas = this._chartSeries.chartData().graphicMarkData()
+      const graphicMarkDatas = this._chartPane.chartData().graphicMarkData()
       const graphicMarkData = graphicMarkDatas[graphicMarkType]
       if (graphicMarkData && isArray(graphicMarkData)) {
         graphicMarkData.splice(graphicMarkData.length - 1, 1)
@@ -218,8 +236,8 @@ export default class Chart {
       if (!graphicMarkDatas.hasOwnProperty(type)) {
         type = GraphicMarkType.NONE
       }
-      this._chartSeries.chartData().setGraphicMarkType(type)
-      this._chartSeries.chartData().setGraphicMarkData(graphicMarkDatas)
+      this._chartPane.chartData().setGraphicMarkType(type)
+      this._chartPane.chartData().setGraphicMarkData(graphicMarkDatas)
     }
   }
 
@@ -227,13 +245,13 @@ export default class Chart {
    * 移除所有标记图形
    */
   removeAllGraphicMark () {
-    const graphicMarkDatas = this._chartSeries.chartData().graphicMarkData()
+    const graphicMarkDatas = this._chartPane.chartData().graphicMarkData()
     const newGraphicMarkDatas = {}
     Object.keys(graphicMarkDatas).forEach(key => {
       newGraphicMarkDatas[key] = []
     })
-    this._chartSeries.chartData().setGraphicMarkType(GraphicMarkType.NONE)
-    this._chartSeries.chartData().setGraphicMarkData(newGraphicMarkDatas)
+    this._chartPane.chartData().setGraphicMarkType(GraphicMarkType.NONE)
+    this._chartPane.chartData().setGraphicMarkData(newGraphicMarkDatas)
   }
 
   /**
@@ -244,14 +262,14 @@ export default class Chart {
    * @param backgroundColor
    */
   getConvertPictureUrl (includeFloatLayer, includeGraphicMark, type, backgroundColor) {
-    return this._chartSeries.getConvertPictureUrl(includeFloatLayer, includeGraphicMark, type, backgroundColor)
+    return this._chartPane.getConvertPictureUrl(includeFloatLayer, includeGraphicMark, type, backgroundColor)
   }
 
   /**
    * 销毁
    */
   destroy () {
-    this._chartSeries.destroy()
+    this._chartPane.destroy()
     delete this
   }
 }

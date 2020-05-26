@@ -15,10 +15,10 @@
 import EventBase from '../event/EventBase'
 import { getPixelRatio } from '../utils/canvas'
 
-export default class SeparatorSeries {
-  constructor (container, chartData, seriesIndex, dragEnabled, dragEventHandler) {
+export default class SeparatorPane {
+  constructor (container, chartData, paneIndex, dragEnabled, dragEventHandler) {
     this._chartData = chartData
-    this._seriesIndex = seriesIndex
+    this._paneIndex = paneIndex
     this._width = 0
     this._offsetLeft = 0
     this._dragEventHandler = dragEventHandler
@@ -27,13 +27,9 @@ export default class SeparatorSeries {
 
   _initElement (container, dragEnabled) {
     this._container = container
-    this._wrapper = document.createElement('div')
-    this._wrapper.style.margin = '0'
-    this._wrapper.style.padding = '0'
+    this._wrapper = this._createElement()
     this._wrapper.style.overflow = 'hidden'
-    this._element = document.createElement('div')
-    this._element.style.margin = '0'
-    this._element.style.padding = '0'
+    this._element = this._createElement()
     this._element.style.width = '100%'
     this._element.style.position = 'absolute'
     this._element.style.zIndex = '20'
@@ -57,14 +53,25 @@ export default class SeparatorSeries {
     }
   }
 
+  /**
+   * 创建div节点
+   * @private
+   */
+  _createElement () {
+    const element = document.createElement('div')
+    element.style.margin = '0'
+    element.style.padding = '0'
+    return element
+  }
+
   _mouseDownEvent (event) {
     this._startY = event.pageY
-    this._dragEventHandler.startDrag(this._seriesIndex)
+    this._dragEventHandler.startDrag(this._paneIndex)
   }
 
   _pressedMouseMoveEvent (event) {
     const dragDistance = event.pageY - this._startY
-    this._dragEventHandler.drag(dragDistance, this._seriesIndex)
+    this._dragEventHandler.drag(dragDistance, this._paneIndex)
   }
 
   /**
@@ -89,10 +96,10 @@ export default class SeparatorSeries {
 
   /**
    * 更新上下两个图表的索引
-   * @param seriesIndex
+   * @param paneIndex
    */
-  updateSeriesIndex (seriesIndex) {
-    this._seriesIndex = seriesIndex
+  updatePaneIndex (paneIndex) {
+    this._paneIndex = paneIndex
   }
 
   /**

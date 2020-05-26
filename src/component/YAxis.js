@@ -13,9 +13,8 @@
  */
 
 import Axis from './Axis'
-import { TechnicalIndicatorType } from '../data/options/technicalIndicatorParamOptions'
-import { formatValue } from '../utils/format'
 import { YAxisType } from '../data/options/styleOptions'
+import { isNumber, isValid } from '../utils/typeChecks'
 
 export default class YAxis extends Axis {
   constructor (chartData, isCandleStickYAxis) {
@@ -23,29 +22,9 @@ export default class YAxis extends Axis {
     this._isCandleStickYAxis = isCandleStickYAxis
   }
 
-  _compareMinMax (kLineData, technicalIndicatorType, minMaxArray) {
-    const technicalIndicatorData = formatValue(kLineData, technicalIndicatorType.toLowerCase(), {})
-    Object.keys(technicalIndicatorData).forEach(key => {
-      const value = technicalIndicatorData[key]
-      if (value || value === 0) {
-        minMaxArray[0] = Math.min(minMaxArray[0], value)
-        minMaxArray[1] = Math.max(minMaxArray[1], value)
-      }
-    })
-    if (technicalIndicatorType === TechnicalIndicatorType.BOLL || technicalIndicatorType === TechnicalIndicatorType.SAR) {
-      minMaxArray[0] = Math.min(minMaxArray[0], kLineData.low)
-      minMaxArray[1] = Math.max(minMaxArray[1], kLineData.high)
-    }
-    return minMaxArray
-  }
-
   _computeMinMaxValue () {
     let min = this._minValue
     let max = this._maxValue
-    if (min === Infinity || max === -Infinity) {
-      return { min: 0, max: 0, range: 0 }
-    }
-
     let range = Math.abs(max - min)
     // 保证每次图形绘制上下都留间隙
     min = min - (range / 100.0) * 10.0
@@ -89,62 +68,79 @@ export default class YAxis extends Axis {
 
   /**
    * 计算最大最小值
-   * @param technicalIndicatorType
+   * @param technicalIndicator
    * @param isRealTime
    */
-  calcMinMaxValue (technicalIndicatorType, isRealTime) {
+  calcMinMaxValue (technicalIndicator, isRealTime) {
     const dataList = this._chartData.dataList()
+    const technicalIndicatorResult = technicalIndicator.result
     const from = this._chartData.from()
     const to = this._chartData.to()
     const isShowAverageLine = this._chartData.styleOptions().realTime.averageLine.display
     const minMaxArray = [Infinity, -Infinity]
+
     if (isRealTime) {
       for (let i = from; i < to; i++) {
         const kLineData = dataList[i]
-        const minCompareArray = [kLineData.close, minMaxArray[0]]
-        const maxCompareArray = [kLineData.close, minMaxArray[1]]
-        if (isShowAverageLine) {
-          minCompareArray.push(kLineData.average)
-          maxCompareArray.push(kLineData.average)
+        const technicalIndicatorData = technicalIndicatorResult[i] || {}
+        minMaxArray[0] = Math.min(kLineData.close, minMaxArray[0])
+        minMaxArray[1] = Math.max(kLineData.close, minMaxArray[1])
+        if (isShowAverageLine && isValid(technicalIndicatorData.average)) {
+          minMaxArray[0] = Math.min(technicalIndicatorData.average, minMaxArray[0])
+          minMaxArray[1] = Math.max(technicalIndicatorData.average, minMaxArray[1])
         }
-        minMaxArray[0] = Math.min.apply(null, minCompareArray)
-        minMaxArray[1] = Math.max.apply(null, maxCompareArray)
       }
     } else {
+      const plots = technicalIndicator.plots || []
       for (let i = from; i < to; i++) {
         const kLineData = dataList[i]
-        this._compareMinMax(kLineData, technicalIndicatorType, minMaxArray)
+        const technicalIndicatorData = technicalIndicatorResult[i] || {}
+        plots.forEach(plot => {
+          const value = technicalIndicatorData[plot.key]
+          if (isValid(value)) {
+            minMaxArray[0] = Math.min(minMaxArray[0], value)
+            minMaxArray[1] = Math.max(minMaxArray[1], value)
+          }
+        })
         if (this._isCandleStickYAxis) {
-          minMaxArray[0] = Math.min(kLineData.low, minMaxArray[0])
-          minMaxArray[1] = Math.max(kLineData.high, minMaxArray[1])
+          minMaxArray[0] = Math.min(minMaxArray[0], kLineData.low)
+          minMaxArray[1] = Math.max(minMaxArray[1], kLineData.high)
         }
       }
-      if (technicalIndicatorType === TechnicalIndicatorType.VOL) {
-        minMaxArray[0] = 0
-      }
+    }
+    if (isValid(technicalIndicator.minValue) && isNumber(technicalIndicator.minValue)) {
+      minMaxArray[0] = technicalIndicator.minValue
+    }
+    if (isValid(technicalIndicator.maxValue) && isNumber(technicalIndicator.maxValue)) {
+      minMaxArray[1] = technicalIndicator.maxValue
     }
     if (minMaxArray[0] !== Infinity && minMaxArray[1] !== -Infinity) {
       if (this.isPercentageYAxis()) {
         const fromClose = dataList[from].close
         this._minValue = (minMaxArray[0] - fromClose) / fromClose * 100
         this._maxValue = (minMaxArray[1] - fromClose) / fromClose * 100
-        if (this._minValue === this._maxValue) {
+        if (
+          this._minValue === this._maxValue ||
+          Math.abs(this._minValue - this._maxValue) < Math.pow(10, -2)
+        ) {
           this._minValue -= 10
           this._maxValue += 10
         }
       } else {
         this._minValue = minMaxArray[0]
         this._maxValue = minMaxArray[1]
-        if (this._minValue === this._maxValue) {
-          this._minValue -= 1
-          if (this._minValue < 0) {
-            this._minValue = 0
-            this._maxValue = Math.max(1, this._maxValue * 2)
-          } else {
-            this._maxValue += 1
-          }
+        if (
+          this._minValue === this._maxValue ||
+          Math.abs(this._minValue - this._maxValue) < Math.pow(10, -6)
+        ) {
+          const percentValue = this._minValue !== 0 ? Math.abs(this._minValue * 0.2) : 10
+          this._minValue = this._minValue !== 0 ? this._minValue - percentValue : this._minValue
+          this._maxValue += percentValue
         }
       }
+    } else {
+      this._minValue = 0
+      this._maxValue = 10
     }
   }
 
@@ -176,8 +172,10 @@ export default class YAxis extends Axis {
   convertToPixel (value) {
     let realValue = value
     if (this.isPercentageYAxis()) {
-      const fromClose = this._chartData.dataList()[this._chartData.from()].close
-      realValue = (value - fromClose) / fromClose * 100
+      const fromClose = (this._chartData.dataList()[this._chartData.from()] || {}).close
+      if (isValid(fromClose)) {
+        realValue = (value - fromClose) / fromClose * 100
+      }
     }
     return this._innerConvertToPixel(realValue)
   }

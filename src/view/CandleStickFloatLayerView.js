@@ -17,21 +17,33 @@ import { isFunction, isObject } from '../utils/typeChecks'
 import { formatBigNumber, formatDate, formatPrecision, formatValue } from '../utils/format'
 import { calcTextWidth, getFont } from '../utils/canvas'
 import { ChartType, FloatLayerPromptCandleStickTextDisplayType } from '../data/options/styleOptions'
+import { getTechnicalIndicatorInfo } from '../data/technicalindicator/technicalIndicatorControl'
 
 export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLayerView {
-  _drawPrompt (kLineData, x, isDrawTechnicalIndicatorPromptPoint) {
+  _drawPrompt (dataPos, kLineData, technicalIndicatorData, technicalIndicator, x, isDrawValueIndicator) {
     const floatLayerPromptCandleStick = this._chartData.styleOptions().floatLayer.prompt.candleStick
     const candleStickPromptData = this._getCandleStickPromptData(kLineData, floatLayerPromptCandleStick)
     if (floatLayerPromptCandleStick.showType === FloatLayerPromptCandleStickTextDisplayType.STANDARD) {
       this._drawCandleStickStandardPromptText(floatLayerPromptCandleStick, candleStickPromptData)
       if (this._additionalDataProvider.chartType() === ChartType.CANDLE_STICK) {
         this._drawTechnicalIndicatorPrompt(
-          kLineData, x, isDrawTechnicalIndicatorPromptPoint,
+          dataPos, technicalIndicatorData, technicalIndicator, x, isDrawValueIndicator,
           floatLayerPromptCandleStick.text.size + floatLayerPromptCandleStick.text.marginTop
         )
       }
     } else {
-      this._drawCandleStickRectPromptText(kLineData, x, floatLayerPromptCandleStick, candleStickPromptData)
+      const data = getTechnicalIndicatorInfo(technicalIndicatorData, technicalIndicator, this._yAxis)
+      this._drawCandleStickRectPromptText(
+        x, floatLayerPromptCandleStick, candleStickPromptData, data
+      )
+      if (isDrawValueIndicator) {
+        const technicalIndicatorOptions = this._chartData.styleOptions().technicalIndicator
+        this._drawTechnicalIndicatorPromptPoint(
+          dataPos, technicalIndicator,
+          data.values,
+          technicalIndicatorOptions.line.colors, x
+        )
+      }
     }
   }
 
@@ -53,10 +65,10 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
       this._ctx.fillText(labelText, labelX, labelY)
       labelX += labelWidth
 
-      const value = values[i] || '--'
+      const value = values[i] || 'n/a'
       let valueText
       if (isObject(value)) {
-        valueText = value.value || '--'
+        valueText = value.value || 'n/a'
         this._ctx.fillStyle = value.color || textColor
       } else {
         this._ctx.fillStyle = textColor
@@ -68,7 +80,9 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
     })
   }
 
-  _drawCandleStickRectPromptText (kLineData, x, floatLayerPromptCandleStick, candleStickPromptData) {
+  _drawCandleStickRectPromptText (
+    x, floatLayerPromptCandleStick, candleStickPromptData, technicalIndicatorPromptData
+  ) {
     const baseLabels = floatLayerPromptCandleStick.labels
     const baseValues = candleStickPromptData
     const baseTextMarginLeft = floatLayerPromptCandleStick.text.marginLeft
@@ -82,10 +96,10 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
     this._ctx.font = getFont(baseTextSize, floatLayerPromptCandleStick.text.family)
     let maxLabelWidth = 0
     baseLabels.forEach((label, i) => {
-      const value = baseValues[i] || '--'
+      const value = baseValues[i] || 'n/a'
       let v = value
       if (isObject(value)) {
-        v = value.value || '--'
+        v = value.value || 'n/a'
       }
       const text = `${label}: ${v}`
       const labelWidth = calcTextWidth(this._ctx, text) + baseTextMarginLeft + baseTextMarginRight
@@ -104,7 +118,6 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
       rectPaddingTop + rectPaddingBottom +
       (baseTextMarginBottom + baseTextMarginTop + baseTextSize) * baseLabels.length
 
-    const technicalIndicatorPromptData = this._getTechnicalIndicatorPromptData(kLineData)
     const floatLayerPromptTechnicalIndicator = this._chartData.styleOptions().floatLayer.prompt.technicalIndicator
 
     const indicatorTextMarginLeft = floatLayerPromptTechnicalIndicator.text.marginLeft
@@ -119,7 +132,7 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
     if (isCandleStick) {
       this._ctx.font = getFont(indicatorTextSize, floatLayerPromptTechnicalIndicator.text.family)
       indicatorLabels.forEach((label, i) => {
-        const v = indicatorValues[i] || '--'
+        const v = indicatorValues[i].value || 'n/a'
         const text = `${label}: ${v}`
         const labelWidth = calcTextWidth(this._ctx, text) + indicatorTextMarginLeft + indicatorTextMarginRight
         maxLabelWidth = Math.max(maxLabelWidth, labelWidth)
@@ -182,7 +195,7 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
 
         this._ctx.textAlign = 'right'
         this._ctx.fillText(
-          indicatorValues[i] || '--',
+          indicatorValues[i].value || 'n/a',
           rectX + rectWidth - rectBorderSize - indicatorTextMarginRight - rectPaddingRight,
           labelY
         )
@@ -227,8 +240,8 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
         values = baseValues
       }
     } else {
-      const precisionOptions = this._chartData.precisionOptions()
-      const language = this._chartData.styleOptions().language
+      const pricePrecision = this._chartData.pricePrecision()
+      const volumePrecision = this._chartData.volumePrecision()
       values = [
         formatValue(kLineData, 'timestamp'),
         formatValue(kLineData, 'open'),
@@ -240,15 +253,15 @@ export default class CandleStickFloatLayerView extends TechnicalIndicatorFloatLa
       values.forEach((value, index) => {
         switch (index) {
           case 0: {
-            values[index] = formatDate(value, 'YYYY-MM-DD hh:mm', this._chartData.timezone())
+            values[index] = formatDate(this._chartData.dateTimeFormat(), value, 'YYYY-MM-DD hh:mm')
             break
           }
           case values.length - 1: {
-            values[index] = formatBigNumber(formatPrecision(value, precisionOptions.volume), language)
+            values[index] = formatBigNumber(formatPrecision(value, volumePrecision))
             break
           }
           default: {
-            values[index] = formatPrecision(value, precisionOptions.price)
+            values[index] = formatPrecision(value, pricePrecision)
             break
           }
         }

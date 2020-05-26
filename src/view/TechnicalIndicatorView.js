@@ -12,11 +12,11 @@
  * limitations under the License.
  */
 
-import View from './View'
-import { TechnicalIndicatorType, getTechnicalIndicatorDataKeysAndValues } from '../data/options/technicalIndicatorParamOptions'
-import { LineStyle, CandleStickStyle } from '../data/options/styleOptions'
+import View, { PlotType } from './View'
+import { LineStyle } from '../data/options/styleOptions'
 import { drawHorizontalLine, drawVerticalLine, drawLine } from '../utils/canvas'
-import { formatValue } from '../utils/format'
+import { isValid } from '../utils/typeChecks'
+import { VOL, MACD } from '../data/technicalindicator/technicalIndicatorType'
 
 export default class TechnicalIndicatorView extends View {
   constructor (container, chartData, xAxis, yAxis, additionalDataProvider) {
@@ -70,264 +70,182 @@ export default class TechnicalIndicatorView extends View {
   }
 
   /**
-   * 是否填充bar
-   * @private
-   */
-  _isFill (dataList, i) {
-    const candleStick = this._chartData.styleOptions().candleStick
-    const { open, close } = formatValue(dataList, i, {})
-    let isFill
-    switch (candleStick.bar.style) {
-      case CandleStickStyle.SOLID: {
-        isFill = true
-        break
-      }
-      case CandleStickStyle.STROKE: {
-        isFill = false
-        break
-      }
-      case CandleStickStyle.UP_STROKE: {
-        if (close > open) {
-          isFill = false
-        } else {
-          isFill = true
-        }
-        break
-      }
-      case CandleStickStyle.DOWN_STROKE: {
-        if (close > open) {
-          isFill = true
-        } else {
-          isFill = false
-        }
-        break
-      }
-    }
-
-    return isFill
-  }
-
-  /**
    * 绘制指标
    * @private
    */
   _drawTechnicalIndicator () {
-    const technicalIndicatorType = this._additionalDataProvider.technicalIndicatorType()
-    const technicalIndicatorParamOptions = this._chartData.technicalIndicatorParamOptions()
-    const linePoints = []
-    const technicalIndicatorOptions = this._chartData.styleOptions().technicalIndicator
+    const technicalIndicator = this._additionalDataProvider.technicalIndicator()
+    const plots = technicalIndicator.plots
+    const indicatorName = technicalIndicator.name
+    const lines = []
+    const styleOptions = this._chartData.styleOptions()
+    const technicalIndicatorOptions = styleOptions.technicalIndicator
     const dataList = this._chartData.dataList()
+    const technicalIndicatorResult = technicalIndicator.result
+    let baseValue = technicalIndicator.baseValue
+    if (!isValid(baseValue)) {
+      baseValue = this._yAxis.min()
+    }
+    const baseValueY = this._yAxis.convertToPixel(baseValue)
+    this._ctx.lineWidth = 1
     this._drawGraphics(
       (x, i, kLineData, halfBarSpace) => {
-        const keysAndValues = getTechnicalIndicatorDataKeysAndValues(kLineData, technicalIndicatorType, technicalIndicatorParamOptions)
-        const values = keysAndValues.values
-        const lineValues = [...values]
-        switch (technicalIndicatorType) {
-          case TechnicalIndicatorType.MA:
-          case TechnicalIndicatorType.EMA:
-          case TechnicalIndicatorType.BOLL: {
-            this._drawTechnicalIndicatorOhlc(
-              i, x, halfBarSpace, technicalIndicatorOptions,
-              kLineData, this._yAxis.isCandleStickYAxis()
-            )
-            break
-          }
-          case TechnicalIndicatorType.MACD: {
-            lineValues.splice(lineValues.length - 1, 1)
-            const macd = values[values.length - 1]
-            if (macd > 0) {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.upColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.upColor
-            } else if (macd < 0) {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.downColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.downColor
-            } else {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor
-            }
-            const preKLineData = formatValue(dataList, i - 1, {})
-            const preMacd = formatValue(preKLineData, 'macd', {}).macd
-            let isFill = !((preMacd || preMacd === 0) && macd > preMacd)
-
-            const macdBarOption = technicalIndicatorOptions.bar.macd
-            isFill = macdBarOption.disableStroke ? true : isFill
-
-            this._drawBars(x, macdBarOption.barWidth ? macdBarOption.barWidth : halfBarSpace, macd, isFill)
-            break
-          }
-          case TechnicalIndicatorType.VOL: {
-            lineValues.splice(lineValues.length - 1, 1)
-            const close = kLineData.close
-            const open = kLineData.open
-            if (close > open) {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.upColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.upColor
-            } else if (close < open) {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.downColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.downColor
-            } else {
-              this._ctx.strokeStyle = technicalIndicatorOptions.bar.noChangeColor
-              this._ctx.fillStyle = technicalIndicatorOptions.bar.noChangeColor
-            }
-            const num = values[values.length - 1]
-
-            const volBarOption = technicalIndicatorOptions.bar.vol
-            const isFill = volBarOption.disableStroke ? true : this._isFill(dataList, i)
-
-            this._drawBars(x, halfBarSpace, num, isFill)
-            break
-          }
-          case TechnicalIndicatorType.SAR: {
-            lineValues.splice(0, 1)
-            const sar = values[0]
-            if (sar || sar === 0) {
-              const dataY = this._yAxis.convertToPixel(sar)
-              if (sar < (kLineData.high + kLineData.low) / 2) {
-                this._ctx.strokeStyle = technicalIndicatorOptions.bar.upColor
-              } else {
-                this._ctx.strokeStyle = technicalIndicatorOptions.bar.downColor
+        const technicalIndicatorData = technicalIndicatorResult[i] || {}
+        let lineValueIndex = 0
+        plots.forEach(plot => {
+          const value = technicalIndicatorData[plot.key]
+          switch (plot.type) {
+            case PlotType.CIRCLE: {
+              if (isValid(value)) {
+                const cbData = {
+                  preData: { kLineData: dataList[i - 1], technicalIndicatorData: technicalIndicatorResult[i - 1] },
+                  currentData: { kLineData, technicalIndicatorData }
+                }
+                const valueY = this._yAxis.convertToPixel(value)
+                const circle = {
+                  x,
+                  y: valueY,
+                  radius: halfBarSpace,
+                  color: (plot.color && plot.color(cbData, technicalIndicatorOptions)) || technicalIndicatorOptions.circle.noChangeColor,
+                  isStroke: plot.isStroke
+                    ? plot.isStroke(cbData)
+                    : true
+                }
+                this._drawCircle(circle)
               }
-              this._ctx.beginPath()
-              this._ctx.arc(x, dataY, halfBarSpace, Math.PI * 2, 0, true)
-              this._ctx.stroke()
-              this._ctx.closePath()
+              break
             }
-            this._drawTechnicalIndicatorOhlc(
-              i, x, halfBarSpace, technicalIndicatorOptions,
-              kLineData, this._yAxis.isCandleStickYAxis()
-            )
-            break
+            case PlotType.BAR: {
+              if (isValid(value)) {
+                const cbData = {
+                  preData: { kLineData: dataList[i - 1], technicalIndicatorData: technicalIndicatorResult[i - 1] },
+                  currentData: { kLineData, technicalIndicatorData }
+                }
+                const valueY = this._yAxis.convertToPixel(value)
+                const height = Math.abs(baseValueY - valueY)
+
+                // MACD options
+                if (indicatorName === MACD) {
+                  const macdOptions = technicalIndicatorOptions.bar.macd
+                  if (macdOptions.barWidth) {
+                    halfBarSpace = macdOptions.barWidth / 2
+                  }
+                  if (macdOptions.disableStroke) {
+                    plot.isStroke = false
+                  }
+                }
+                // VOL options
+                else if (indicatorName === VOL) {
+                  const volOptions = technicalIndicatorOptions.bar.vol
+                  if (volOptions.disableStroke) {
+                    plot.isStroke = false
+                  }
+                }
+                const bar = {
+                  x: x - halfBarSpace,
+                  width: halfBarSpace * 2,
+                  height: Math.max(1, height)
+                }
+                if (valueY <= baseValueY) {
+                  bar.y = height < 1 ? baseValueY + 1 : valueY
+                } else {
+                  bar.y = baseValueY
+                }
+                bar.color = (plot.color && plot.color(cbData, technicalIndicatorOptions)) || technicalIndicatorOptions.bar.noChangeColor
+                bar.isStroke = plot.isStroke
+                  ? plot.isStroke(cbData, styleOptions)
+                  : false
+                this._drawBar(bar)
+              }
+              break
+            }
+            default: {
+              if (isValid(value)) {
+                const valueY = this._yAxis.convertToPixel(value)
+                const line = { x: x, y: valueY }
+                if (lines[lineValueIndex]) {
+                  lines[lineValueIndex].push(line)
+                } else {
+                  lines[lineValueIndex] = [line]
+                }
+              } else {
+                if (lines[lineValueIndex]) {
+                  lines[lineValueIndex].push(null)
+                } else {
+                  lines[lineValueIndex] = [null]
+                }
+              }
+              lineValueIndex++
+              break
+            }
           }
-        }
-        this._prepareLinePoints(x, lineValues, linePoints)
+        })
       },
       () => {
-        this._drawLines(linePoints, technicalIndicatorOptions)
+        this._drawLines(lines, technicalIndicatorOptions)
       }
     )
   }
 
   /**
-   * 需要绘制ohlc指标每条数据渲染
-   * @param i
-   * @param x
-   * @param halfBarSpace
-   * @param technicalIndicatorOptions
-   * @param kLineData
-   * @param isCandleStick
-   */
-  _drawTechnicalIndicatorOhlc (i, x, halfBarSpace, technicalIndicatorOptions, kLineData, isCandleStick) {
-    if (!isCandleStick) {
-      this._drawOhlc(
-        halfBarSpace, x, kLineData,
-        technicalIndicatorOptions.bar.upColor,
-        technicalIndicatorOptions.bar.downColor, technicalIndicatorOptions.bar.noChangeColor
-      )
-    }
-  }
-
-  /**
-   * 准备绘制线的数据
-   * @param x
-   * @param lineValues
-   * @param linePoints
-   */
-  _prepareLinePoints (x, lineValues, linePoints) {
-    for (let i = 0; i < lineValues.length; i++) {
-      const value = lineValues[i]
-      const valueY = this._yAxis.convertToPixel(value)
-      if (!linePoints[i]) {
-        linePoints[i] = [{ x: x, y: valueY }]
-      } else {
-        linePoints[i].push({ x: x, y: valueY })
-      }
-    }
-  }
-
-  /**
    * 绘制线
-   * @param linePoints
+   * @param lines
    * @param technicalIndicatorOptions
    */
-  _drawLines (linePoints, technicalIndicatorOptions) {
+  _drawLines (lines, technicalIndicatorOptions) {
     const colors = technicalIndicatorOptions.line.colors
-    const pointCount = linePoints.length
     const colorSize = (colors || []).length
     this._ctx.lineWidth = technicalIndicatorOptions.line.size
     drawLine(this._ctx, () => {
-      for (let i = 0; i < pointCount; i++) {
-        const points = linePoints[i]
-        if (points.length > 0) {
-          this._ctx.strokeStyle = colors[i % colorSize]
-          this._ctx.beginPath()
-          this._ctx.moveTo(points[0].x, points[0].y)
-          for (let j = 1; j < points.length; j++) {
-            this._ctx.lineTo(points[j].x, points[j].y)
+      lines.forEach((lineItem, i) => {
+        this._ctx.strokeStyle = colors[i % colorSize]
+        this._ctx.beginPath()
+        let isStart = true
+        lineItem.forEach(line => {
+          if (isValid(line)) {
+            if (isStart) {
+              this._ctx.moveTo(line.x, line.y)
+              isStart = false
+            } else {
+              this._ctx.lineTo(line.x, line.y)
+            }
           }
-          this._ctx.stroke()
-          this._ctx.closePath()
-        }
-      }
+        })
+        this._ctx.stroke()
+        this._ctx.closePath()
+      })
     })
   }
 
   /**
-   * 绘制柱状图
-   * @param x
-   * @param halfBarSpace
-   * @param barData
-   * @param isSolid
+   * 绘制柱
    */
-  _drawBars (x, halfBarSpace, barData, isSolid) {
-    if (barData || barData === 0) {
-      this._ctx.lineWidth = 1
-      const dataY = this._yAxis.convertToPixel(barData)
-      const zeroY = this._yAxis.convertToPixel(0)
-      let y = dataY
-      if (barData < 0) {
-        y = zeroY
-      }
-      const yDif = zeroY - dataY
-      let barHeight = Math.abs(yDif)
-      if (barHeight < 1) {
-        barHeight = 1
-        y = barData < 0 ? y + 1 : y - 1
-      }
-      if (isSolid) {
-        this._ctx.fillRect(x - halfBarSpace, y, halfBarSpace * 2, barHeight)
-      } else {
-        this._ctx.strokeRect(x - halfBarSpace + 0.5, y, halfBarSpace * 2 - 1, barHeight)
-      }
+  _drawBar (bar) {
+    if (bar.isStroke) {
+      this._ctx.strokeStyle = bar.color
+      this._ctx.strokeRect(bar.x + 0.5, bar.y, bar.width - 1, bar.height)
+    } else {
+      this._ctx.fillStyle = bar.color
+      this._ctx.fillRect(bar.x, bar.y, bar.width, bar.height)
     }
   }
 
   /**
-   * 绘制ohlc
-   * @param halfBarSpace
-   * @param x
-   * @param kLineData
-   * @param upColor
-   * @param downColor
-   * @param noChangeColor
+   * 绘制圆点
+   * @param circle
    * @private
    */
-  _drawOhlc (halfBarSpace, x, kLineData, upColor, downColor, noChangeColor) {
-    const open = kLineData.open
-    const close = kLineData.close
-    const openY = this._yAxis.convertToPixel(open)
-    const closeY = this._yAxis.convertToPixel(close)
-    const highY = this._yAxis.convertToPixel(kLineData.high)
-    const lowY = this._yAxis.convertToPixel(kLineData.low)
-    if (close > open) {
-      this._ctx.fillStyle = upColor
-    } else if (close < open) {
-      this._ctx.fillStyle = downColor
+  _drawCircle (circle) {
+    this._ctx.strokeStyle = circle.color
+    this._ctx.fillStyle = circle.color
+    this._ctx.beginPath()
+    this._ctx.arc(circle.x, circle.y, circle.radius, Math.PI * 2, 0, true)
+    if (circle.isStroke) {
+      this._ctx.stroke()
     } else {
-      this._ctx.fillStyle = noChangeColor
+      this._ctx.fill()
     }
-    this._ctx.fillRect(x - 0.5, highY, 1, lowY - highY)
-    this._ctx.fillRect(x - halfBarSpace, openY - 0.5, halfBarSpace, 1)
-    this._ctx.fillRect(x, closeY - 0.5, halfBarSpace, 1)
+    this._ctx.closePath()
   }
 
   /**

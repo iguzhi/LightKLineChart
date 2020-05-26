@@ -12,16 +12,17 @@
  * limitations under the License.
  */
 
-import TechnicalIndicatorSeries from './TechnicalIndicatorSeries'
+import TechnicalIndicatorPane from './TechnicalIndicatorPane'
 import CandleStickWidget from '../widget/CandleStickWidget'
 import { ChartType } from '../data/options/styleOptions'
 import YAxis from '../component/YAxis'
-import { TechnicalIndicatorType } from '../data/options/technicalIndicatorParamOptions'
+import TransactionAveragePrice from '../data/technicalindicator/directionalmovement/TransactionAveragePrice'
 
-export default class CandleStickSeries extends TechnicalIndicatorSeries {
+export default class CandleStickPane extends TechnicalIndicatorPane {
   constructor (props) {
     super(props)
     this._chartType = ChartType.CANDLE_STICK
+    this._realTimeTechnicalIndicator = new TransactionAveragePrice()
   }
 
   _createYAxis (props) {
@@ -35,7 +36,7 @@ export default class CandleStickSeries extends TechnicalIndicatorSeries {
       xAxis: props.xAxis,
       yAxis: this._yAxis,
       additionalDataProvider: {
-        technicalIndicatorType: this.technicalIndicatorType.bind(this),
+        technicalIndicator: this.technicalIndicator.bind(this),
         chartType: this.chartType.bind(this),
         tag: this.tag.bind(this)
       }
@@ -46,6 +47,10 @@ export default class CandleStickSeries extends TechnicalIndicatorSeries {
     return this._chartType === ChartType.REAL_TIME
   }
 
+  technicalIndicator () {
+    return this._isRealTime() ? this._realTimeTechnicalIndicator : this._technicalIndicator
+  }
+
   chartType () {
     return this._chartType
   }
@@ -53,7 +58,7 @@ export default class CandleStickSeries extends TechnicalIndicatorSeries {
   setChartType (chartType) {
     if (this._chartType !== chartType) {
       this._chartType = chartType
-      this._chartData.calcTechnicalIndicator(this, TechnicalIndicatorType.AVERAGE)
+      this._chartData.calcTechnicalIndicator(this, this.technicalIndicator())
     }
   }
 }

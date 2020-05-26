@@ -18,7 +18,7 @@ import {
   getParallelLines, getFibonacciLines
 } from '../utils/graphic'
 import { isFunction } from '../utils/typeChecks'
-import { CANDLE_STICK_SERIES_TAG } from '../series/ChartSeries'
+import { CANDLE_STICK_PANE_TAG } from '../pane/ChartPane'
 import { GraphicMarkType } from '../data/ChartData'
 import EventHandler from './EventHandler'
 
@@ -218,7 +218,7 @@ export default class GraphicMarkEventHandler extends EventHandler {
         case GraphicMarkType.PRICE_LINE: {
           if (this._realFindNoneGraphicMarkMouseDownActiveData(key, point, (xyPoints) => {
             return checkPointOnStraightLine(
-              xyPoints[0], { x: this._seriesSize.contentRight, y: xyPoints[0].y }, point
+              xyPoints[0], { x: this._paneSize.contentRight, y: xyPoints[0].y }, point
             )
           })) {
             return
@@ -228,7 +228,7 @@ export default class GraphicMarkEventHandler extends EventHandler {
         case GraphicMarkType.VERTICAL_STRAIGHT_LINE: {
           if (this._realFindNoneGraphicMarkMouseDownActiveData(key, point, (xyPoints) => {
             return checkPointOnStraightLine(
-              xyPoints[0], { x: xyPoints[0].x, y: this._seriesSize.tags[CANDLE_STICK_SERIES_TAG].contentBottom }, point
+              xyPoints[0], { x: xyPoints[0].x, y: this._paneSize.tags[CANDLE_STICK_PANE_TAG].contentBottom }, point
             )
           })) {
             return
@@ -267,10 +267,10 @@ export default class GraphicMarkEventHandler extends EventHandler {
         case GraphicMarkType.PARALLEL_STRAIGHT_LINE:
         case GraphicMarkType.FIBONACCI_LINE: {
           if (this._realFindNoneGraphicMarkMouseDownActiveData(key, point, (xyPoints) => {
-            let linePoints = []
+            let linePoints
             const size = {
-              width: this._seriesSize.contentRight,
-              height: this._seriesSize.tags[CANDLE_STICK_SERIES_TAG].contentBottom - this._seriesSize.tags[CANDLE_STICK_SERIES_TAG].contentTop
+              width: this._paneSize.contentRight,
+              height: this._paneSize.tags[CANDLE_STICK_PANE_TAG].contentBottom - this._paneSize.tags[CANDLE_STICK_PANE_TAG].contentTop
             }
             switch (key) {
               case GraphicMarkType.PRICE_CHANNEL_LINE: {
@@ -287,11 +287,13 @@ export default class GraphicMarkEventHandler extends EventHandler {
               }
             }
             let isOnGraphicMark = false
-            for (let i = 0; i < linePoints.length; i++) {
-              const points = linePoints[i]
-              isOnGraphicMark = checkPointOnStraightLine(points[0], points[1], point)
-              if (isOnGraphicMark) {
-                return isOnGraphicMark
+            if (linePoints) {
+              for (let i = 0; i < linePoints.length; i++) {
+                const points = linePoints[i]
+                isOnGraphicMark = checkPointOnStraightLine(points[0], points[1], point)
+                if (isOnGraphicMark) {
+                  return isOnGraphicMark
+                }
               }
             }
             return isOnGraphicMark
@@ -566,7 +568,7 @@ export default class GraphicMarkEventHandler extends EventHandler {
   }
 
   _checkEventPointY (y) {
-    const size = this._seriesSize.tags[CANDLE_STICK_SERIES_TAG]
+    const size = this._paneSize.tags[CANDLE_STICK_PANE_TAG]
     return y > size.contentTop && y < size.contentBottom
   }
 }

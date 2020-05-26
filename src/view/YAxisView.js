@@ -12,14 +12,11 @@
  * limitations under the License.
  */
 
-import View from './View'
+import View, { PlotType } from './View'
 import { YAxisPosition, YAxisTextPosition } from '../data/options/styleOptions'
-import {
-  getTechnicalIndicatorDataKeysAndValues,
-  TechnicalIndicatorType
-} from '../data/options/technicalIndicatorParamOptions'
 import { calcTextWidth, drawHorizontalLine, drawVerticalLine, getFont } from '../utils/canvas'
 import { formatBigNumber, formatPrecision } from '../utils/format'
+import { isValid } from '../utils/typeChecks'
 
 export default class YAxisView extends View {
   constructor (container, chartData, yAxis, additionalDataProvider) {
@@ -118,9 +115,9 @@ export default class YAxisView extends View {
     this._ctx.textBaseline = 'middle'
     this._ctx.font = getFont(tickText.size, tickText.family)
     this._ctx.fillStyle = tickText.color
-    const isVol = this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL
+    const isVolumeTechnicalIndicator = this._additionalDataProvider.technicalIndicator().isVolumeTechnicalIndicator
     this._yAxis.ticks().forEach(tick => {
-      this._ctx.fillText(isVol ? formatBigNumber(tick.v, language) : tick.v, labelX, tick.y)
+      this._ctx.fillText(isVolumeTechnicalIndicator ? formatBigNumber(tick.v) : tick.v, labelX, tick.y)
     })
     this._ctx.textAlign = 'left'
   }
@@ -133,29 +130,50 @@ export default class YAxisView extends View {
   _drawTechnicalIndicatorLastValue (yAxisOptions) {
     const technicalIndicatorStyleOptions = this._chartData.styleOptions().technicalIndicator
     const lastValueMarkStyleOptions = technicalIndicatorStyleOptions.lastValueMark
-    const dataList = this._chartData.dataList()
-    const lastKLineData = dataList[dataList.length - 1]
-    if (!lastValueMarkStyleOptions.display || !lastKLineData) {
+    const technicalIndicator = this._additionalDataProvider.technicalIndicator()
+    const technicalIndicatorResult = technicalIndicator.result
+    const dataSize = technicalIndicatorResult.length
+    const technicalIndicatorData = technicalIndicatorResult[dataSize - 1]
+    if (!lastValueMarkStyleOptions.display || !technicalIndicatorData) {
       return
     }
-    const technicalIndicatorParamOptions = this._chartData.technicalIndicatorParamOptions()
-    const technicalIndicatorType = this._additionalDataProvider.technicalIndicatorType()
-    const keysAndValues = getTechnicalIndicatorDataKeysAndValues(lastKLineData, technicalIndicatorType, technicalIndicatorParamOptions)
-    const values = keysAndValues.values
+    const dataList = this._chartData.dataList()
+    const plots = technicalIndicator.plots
+    const cbData = {
+      preData: { kLineData: dataList[dataSize - 2], technicalIndicatorData: technicalIndicatorResult[dataSize - 2] },
+      currentData: { kLineData: dataList[dataSize - 1], technicalIndicatorData }
+    }
+    const precision = technicalIndicator.precision
     const colors = technicalIndicatorStyleOptions.line.colors || []
     const colorSize = colors.length
-    const valueCount = values.length
-    for (let i = 0; i < valueCount; i++) {
-      const value = values[i]
-      const backgroundColor = colors[i % colorSize]
-      this._drawMarkLabel(
-        yAxisOptions, value, this._chartData.precisionOptions()[technicalIndicatorType],
-        lastValueMarkStyleOptions.textSize, lastValueMarkStyleOptions.textFamily,
-        lastValueMarkStyleOptions.textColor, backgroundColor,
-        lastValueMarkStyleOptions.textPaddingLeft, lastValueMarkStyleOptions.textPaddingTop,
-        lastValueMarkStyleOptions.textPaddingRight, lastValueMarkStyleOptions.textPaddingBottom
-      )
-    }
+    let lineCount = 0
+    plots.forEach(plot => {
+      const value = technicalIndicatorData[plot.key]
+      let backgroundColor
+      switch (plot.type) {
+        case PlotType.CIRCLE: {
+          backgroundColor = (plot.color && plot.color(cbData, technicalIndicatorStyleOptions)) || technicalIndicatorStyleOptions.circle.noChangeColor
+          break
+        }
+        case PlotType.BAR: {
+          backgroundColor = (plot.color && plot.color(cbData, technicalIndicatorStyleOptions)) || technicalIndicatorStyleOptions.bar.noChangeColor
+          break
+        }
+        default: {
+          backgroundColor = colors[lineCount % colorSize]
+          lineCount++
+        }
+      }
+      if (isValid(value)) {
+        this._drawMarkLabel(
+          yAxisOptions, value, precision,
+          lastValueMarkStyleOptions.textSize, lastValueMarkStyleOptions.textFamily,
+          lastValueMarkStyleOptions.textColor, backgroundColor,
+          lastValueMarkStyleOptions.textPaddingLeft, lastValueMarkStyleOptions.textPaddingTop,
+          lastValueMarkStyleOptions.textPaddingRight, lastValueMarkStyleOptions.textPaddingBottom
+        )
+      }
+    })
   }
 
   /**
@@ -186,7 +204,7 @@ export default class YAxisView extends View {
     }
     const priceMarkText = lastPriceMark.text
     this._drawMarkLabel(
-      yAxisOptions, close, this._chartData.precisionOptions().price,
+      yAxisOptions, close, this._chartData.pricePrecision(),
       priceMarkText.size, priceMarkText.family, priceMarkText.color, backgroundColor,
       priceMarkText.paddingLeft, priceMarkText.paddingTop,
       priceMarkText.paddingRight, priceMarkText.paddingBottom
@@ -220,7 +238,7 @@ export default class YAxisView extends View {
       text = `${((value - fromClose) / fromClose * 100).toFixed(2)}%`
     } else {
       text = formatPrecision(value, precision)
-      if (this._additionalDataProvider.technicalIndicatorType() === TechnicalIndicatorType.VOL) {
+      if (this._additionalDataProvider.technicalIndicator().isVolumeTechnicalIndicator) {
         const language = this._chartData.styleOptions().language
         text = formatBigNumber(text, language)
       }

@@ -12,17 +12,18 @@
  * limitations under the License.
  */
 
-import Series from './Series'
+import Pane from './Pane'
 import TechnicalIndicatorWidget from '../widget/TechnicalIndicatorWidget'
 import YAxisWidget from '../widget/YAxisWidget'
-import { TechnicalIndicatorType } from '../data/options/technicalIndicatorParamOptions'
+import { MACD } from '../data/technicalindicator/technicalIndicatorType'
+import EmptyTechnicalIndicator from '../data/technicalindicator/TechnicalIndicator'
 import YAxis from '../component/YAxis'
 
-export default class TechnicalIndicatorSeries extends Series {
+export default class TechnicalIndicatorPane extends Pane {
   constructor (props) {
     super(props)
-    this._technicalIndicatorType = props.technicalIndicatorType || TechnicalIndicatorType.MACD
-    this._chartData.calcTechnicalIndicator(this, this._technicalIndicatorType)
+    const technicalIndicatorType = props.technicalIndicatorType || MACD
+    this.setTechnicalIndicatorType(technicalIndicatorType)
   }
 
   _initBefore (props) {
@@ -41,7 +42,7 @@ export default class TechnicalIndicatorSeries extends Series {
       xAxis: props.xAxis,
       yAxis: this._yAxis,
       additionalDataProvider: {
-        technicalIndicatorType: this.technicalIndicatorType.bind(this),
+        technicalIndicator: this.technicalIndicator.bind(this),
         tag: this.tag.bind(this)
       }
     })
@@ -53,14 +54,14 @@ export default class TechnicalIndicatorSeries extends Series {
       chartData: props.chartData,
       yAxis: this._yAxis,
       additionalDataProvider: {
-        technicalIndicatorType: this.technicalIndicatorType.bind(this),
+        technicalIndicator: this.technicalIndicator.bind(this),
         tag: this.tag.bind(this)
       }
     })
   }
 
   _computeAxis () {
-    this._yAxis.calcMinMaxValue(this._technicalIndicatorType, this._isRealTime())
+    this._yAxis.calcMinMaxValue(this.technicalIndicator(), this._isRealTime())
     this._yAxis.computeAxis()
   }
 
@@ -92,17 +93,30 @@ export default class TechnicalIndicatorSeries extends Series {
   }
 
   /**
-   * 获取技术指标类型
+   * 获取技术指标
    * @returns {string}
    */
-  technicalIndicatorType () {
-    return this._technicalIndicatorType
+  technicalIndicator () {
+    return this._technicalIndicator
   }
 
+  /**
+   * 设置技术指标类型
+   * @param technicalIndicatorType
+   */
   setTechnicalIndicatorType (technicalIndicatorType) {
-    if (this._technicalIndicatorType !== technicalIndicatorType) {
-      this._technicalIndicatorType = technicalIndicatorType
-      this._chartData.calcTechnicalIndicator(this, this._technicalIndicatorType)
+    const TechnicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+    if (
+      (!this._technicalIndicator && !TechnicalIndicator) ||
+      (this._technicalIndicator && this._technicalIndicator.name === technicalIndicatorType)
+    ) {
+      return
     }
+    if (TechnicalIndicator) {
+      this._technicalIndicator = new TechnicalIndicator()
+    } else {
+      this._technicalIndicator = new EmptyTechnicalIndicator({ isPriceTechnicalIndicator: true })
+    }
+    this._chartData.calcTechnicalIndicator(this)
   }
 }
