@@ -67,7 +67,7 @@ export default class ChartEvent {
     // 显示十字线, 恢复crossHair
     if (this._crossHair) {
       const crossHair = this._crossHair;
-      this._chartData.setCrossHairPointPaneTag({ x: crossHair.x, y: crossHair.y }, crossHair.paneTag)
+      this._chartData.setCrossHairPointPaneTag(null, crossHair.paneTag)
     }
     // this._target.style.cursor = 'crosshair'
     event.localX -= this._paneSize.contentLeft
@@ -87,6 +87,7 @@ export default class ChartEvent {
       this._graphicMarkEventHandler.mouseMoveEvent(event)
     }
     if (this._checkZoomScroll()) {
+      // this._target.style.cursor = 'none'
       this._zoomScrollEventHandler.mouseMoveEvent(event)
     }
     else {
@@ -117,7 +118,6 @@ export default class ChartEvent {
     }
     // 隐藏十字线
     if (this._chartData.crossHair().paneTag) {
-      this._crossHair = this._chartData.crossHair() // 保存crossHair
       this._chartData.setCrossHairPointPaneTag(null, null)
     }
   }
@@ -131,17 +131,15 @@ export default class ChartEvent {
     event.localX -= this._paneSize.contentLeft
     if (this._chartData.dragGraphicMarkFlag()) {
       this._graphicMarkEventHandler.pressedMouseMoveEvent(event)
-      // // 这里判断一下，如果是在拖拽图形标记，让十字光标不显示
-      // if (this._chartData.crossHairPaneTag() !== null) {
-      //   this._chartData.setCrossHairPaneTag(null)
-      // }
     }
-    // 这里判断一下，如果是在拖拽图形标记，让十字光标不显示
-    if (this._chartData.crossHair) {
-      this._chartData.setCrossHairPointPaneTag(null, null)
-    }
+
     if (this._checkZoomScroll()) {
       this._zoomScrollEventHandler.pressedMouseMoveEvent(event)
+    }
+
+    // 这里判断一下，如果是在拖拽图形标记，让十字光标不显示
+    if (this._chartData.crossHair().paneTag) {
+      this._chartData.setCrossHairPointPaneTag(null, null)
     }
   }
 
