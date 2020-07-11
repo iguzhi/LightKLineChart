@@ -15,7 +15,7 @@
 import Pane from './Pane'
 import TechnicalIndicatorWidget from '../widget/TechnicalIndicatorWidget'
 import YAxisWidget from '../widget/YAxisWidget'
-import { MACD } from '../data/technicalindicator/technicalIndicatorType'
+import { MACD } from '../data/technicalindicator/defaultTechnicalIndicatorType'
 import EmptyTechnicalIndicator from '../data/technicalindicator/TechnicalIndicator'
 import YAxis from '../component/YAxis'
 
@@ -105,7 +105,7 @@ export default class TechnicalIndicatorPane extends Pane {
    * @param technicalIndicatorType
    */
   setTechnicalIndicatorType (technicalIndicatorType) {
-    const TechnicalIndicator = this._chartData.technicalIndicator(technicalIndicatorType)
+    const { structure: TechnicalIndicator } = this._chartData.technicalIndicator(technicalIndicatorType)
     if (
       (!this._technicalIndicator && !TechnicalIndicator) ||
       (this._technicalIndicator && this._technicalIndicator.name === technicalIndicatorType)
@@ -115,7 +115,7 @@ export default class TechnicalIndicatorPane extends Pane {
     if (TechnicalIndicator) {
       this._technicalIndicator = new TechnicalIndicator()
     } else {
-      this._technicalIndicator = new EmptyTechnicalIndicator({ isPriceTechnicalIndicator: true })
+      this._technicalIndicator = new EmptyTechnicalIndicator({})
     }
     this._chartData.calcTechnicalIndicator(this)
   }

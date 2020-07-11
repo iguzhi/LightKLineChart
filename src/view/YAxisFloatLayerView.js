@@ -52,9 +52,9 @@ export default class YAxisFloatLayerView extends View {
       yAxisDataLabel = `${((value - fromClose) / fromClose * 100).toFixed(2)}%`
     } else {
       const technicalIndicator = this._additionalDataProvider.technicalIndicator()
-      const precision = technicalIndicator.precision
+      const precision = this._yAxis.isCandleStickYAxis() ? this._chartData.pricePrecision() : technicalIndicator.precision
       yAxisDataLabel = formatPrecision(value, precision)
-      if (technicalIndicator.isVolumeTechnicalIndicator) {
+      if (technicalIndicator.shouldFormatBigNumber) {
         const language = this._chartData.styleOptions().language
         yAxisDataLabel = formatBigNumber(yAxisDataLabel, language)
       }

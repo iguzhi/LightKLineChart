@@ -157,8 +157,8 @@ The technicalIndicatorInfo format is as follows:
   calcParams: [],
   plots: []
   shouldCheckParamCount: true
-  isPriceTechnicalIndicator: false,
-  isVolumeTechnicalIndicator: false
+  shouldOhlc: false,
+  shouldFormatBigNumber: false,
   baseValue: null
   minValue: null
   maxValue: null

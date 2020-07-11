@@ -13,7 +13,7 @@
  */
 
 import TechnicalIndicator from '../TechnicalIndicator'
-import { MA } from '../technicalIndicatorType'
+import { MA } from '../defaultTechnicalIndicatorType'
 
 export default class MovingAverage extends TechnicalIndicator {
   constructor () {
@@ -21,7 +21,7 @@ export default class MovingAverage extends TechnicalIndicator {
       name: MA,
       calcParams: [5, 10, 30, 60],
       shouldCheckParamCount: false,
-      isPriceTechnicalIndicator: true,
+      shouldOhlc: true,
       plots: [
         { key: 'ma5', type: 'line' },
         { key: 'ma10', type: 'line' },

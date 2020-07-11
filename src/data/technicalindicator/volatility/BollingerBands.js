@@ -13,14 +13,14 @@
  */
 
 import TechnicalIndicator from '../TechnicalIndicator'
-import { BOLL } from '../technicalIndicatorType'
+import { BOLL } from '../defaultTechnicalIndicatorType'
 
 export default class BollingerBands extends TechnicalIndicator {
   constructor () {
     super({
       name: BOLL,
       calcParams: [20],
-      isPriceTechnicalIndicator: true,
+      shouldOhlc: true,
       plots: [
         { key: 'up', type: 'line' },
         { key: 'mid', type: 'line' },

@@ -13,15 +13,15 @@
  */
 
 import TechnicalIndicator from '../TechnicalIndicator'
-import { VOL } from '../technicalIndicatorType'
+import { VOL } from '../defaultTechnicalIndicatorType'
 
 export default class Volume extends TechnicalIndicator {
   constructor () {
     super({
       name: VOL,
       calcParams: [5, 10, 20],
-      isVolumeTechnicalIndicator: true,
       shouldCheckParamCount: false,
+      shouldFormatBigNumber: true,
       baseValue: 0,
       minValue: 0,
       plots: [

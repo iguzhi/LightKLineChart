@@ -13,14 +13,14 @@
  */
 
 import TechnicalIndicator from '../TechnicalIndicator'
-import { SAR } from '../technicalIndicatorType'
+import { SAR } from '../defaultTechnicalIndicatorType'
 
 export default class StopAndReverse extends TechnicalIndicator {
   constructor () {
     super({
       name: SAR,
       calcParams: [2, 2, 20],
-      isPriceTechnicalIndicator: true,
+      shouldOhlc: true,
       plots: [
         {
           key: 'sar',
