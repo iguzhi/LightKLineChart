@@ -2,9 +2,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
-
  * http://www.apache.org/licenses/LICENSE-2.0
-
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -74,7 +72,7 @@ export default class ChartPane {
     this._chartContainer.style.outline = 'none'
     this._chartContainer.style.borderStyle = 'none'
     this._chartContainer.style.width = '100%'
-    this._chartContainer.style.cursor = 'none'
+    this._chartContainer.style.cursor = 'crosshair'
     this._chartContainer.tabIndex = 1
     container.appendChild(this._chartContainer)
   }
@@ -216,7 +214,7 @@ export default class ChartPane {
     const xAxisHeight = this._measureXAxisHeight()
     const yAxisWidth = this._measureYAxisWidth()
     const paneExcludeXAxisSeparatorHeight = paneHeight - xAxisHeight - separatorHeight
-    const mainWidthWidth = paneWidth - (isYAxisTextOutsize ? yAxisWidth : 0)
+    const mainWidth = paneWidth - (isYAxisTextOutsize ? yAxisWidth : 0)
     let yAxisOffsetLeft = paneWidth - yAxisWidth
     let mainOffsetLeft = 0
     if (isYAxisLeft) {
@@ -239,16 +237,16 @@ export default class ChartPane {
 
     const candleStickPaneHeight = paneExcludeXAxisSeparatorHeight - technicalIndicatorPaneTotalHeight
 
-    this._chartData.setTotalDataSpace(mainWidthWidth)
+    this._chartData.setTotalDataSpace(mainWidth)
     const paneSize = {}
     paneSize.contentLeft = mainOffsetLeft
-    paneSize.contentRight = mainOffsetLeft + mainWidthWidth
+    paneSize.contentRight = mainOffsetLeft + mainWidth
     const tags = {}
     tags[CANDLE_STICK_PANE_TAG] = { contentTop: 0, contentBottom: candleStickPaneHeight }
     let contentTop = candleStickPaneHeight
     let contentBottom = candleStickPaneHeight
     this._candleStickPane.setSize(
-      { left: mainOffsetLeft, width: mainWidthWidth, height: candleStickPaneHeight },
+      { left: mainOffsetLeft, width: mainWidth, height: candleStickPaneHeight },
       { left: yAxisOffsetLeft, width: yAxisWidth, height: candleStickPaneHeight }
     )
 
@@ -257,17 +255,17 @@ export default class ChartPane {
       const separatorPane = this._separatorPanes[i]
       const technicalIndicatorPaneHeight = technicalIndicatorPane.height()
       technicalIndicatorPane.setSize(
-        { left: mainOffsetLeft, width: mainWidthWidth, height: technicalIndicatorPaneHeight },
+        { left: mainOffsetLeft, width: mainWidth, height: technicalIndicatorPaneHeight },
         { left: yAxisOffsetLeft, width: yAxisWidth, height: technicalIndicatorPaneHeight }
       )
-      separatorPane.setSize(mainOffsetLeft, mainWidthWidth)
+      separatorPane.setSize(mainOffsetLeft, mainWidth)
       contentBottom += technicalIndicatorPaneHeight
       tags[technicalIndicatorPane.tag()] = { contentTop, contentBottom }
       contentTop = contentBottom
     }
     paneSize.tags = tags
     this._xAxisPane.setSize(
-      { left: mainOffsetLeft, width: mainWidthWidth, height: xAxisHeight },
+      { left: mainOffsetLeft, width: mainWidth, height: xAxisHeight },
       { left: yAxisOffsetLeft, width: yAxisWidth, height: xAxisHeight }
     )
     this._chartEvent.setPaneSize(paneSize)

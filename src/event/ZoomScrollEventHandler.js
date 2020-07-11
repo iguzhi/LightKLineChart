@@ -2,9 +2,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
-
  * http://www.apache.org/licenses/LICENSE-2.0
-
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,7 +40,7 @@ export default class ZoomScrollEventHandler extends EventHandler {
 
   mouseLeaveEvent (event) {
     if (isMouse(event)) {
-      this._chartData.setCrossHairPaneTag(null)
+      this._chartData.setCrossHairPointPaneTag(null, null)
     }
   }
 
@@ -51,10 +49,9 @@ export default class ZoomScrollEventHandler extends EventHandler {
       return
     }
     this._performCross(event, false, cross => {
-      this._chartData.setCrossHairPoint({ x: event.localX, y: cross.y })
-      this._chartData.setCrossHairPaneTag(cross.tag)
+      this._chartData.setCrossHairPointPaneTag({ x: event.localX, y: cross.y }, cross.tag)
     }, () => {
-      this._chartData.setCrossHairPaneTag(null)
+      this._chartData.setCrossHairPointPaneTag(null, null)
     })
   }
 
@@ -90,8 +87,7 @@ export default class ZoomScrollEventHandler extends EventHandler {
     this._performCross(event, true, cross => {
       if (!this._touchPoint && !this._touchCancelCrossHair && !this._touchZoomed) {
         this._touchPoint = { x: event.localX, y: event.localY }
-        this._chartData.setCrossHairPoint({ x: event.localX, y: cross.y })
-        this._chartData.setCrossHairPaneTag(cross.tag)
+        this._chartData.setCrossHairPointPaneTag({ x: event.localX, y: cross.y }, cross.tag)
       }
     })
   }
@@ -108,13 +104,11 @@ export default class ZoomScrollEventHandler extends EventHandler {
         const radius = Math.sqrt(xDif * xDif + yDif * yDif)
         if (radius < 10) {
           this._touchPoint = { x: event.localX, y: event.localY }
-          this._chartData.setCrossHairPoint(crossHairPoint)
-          this._chartData.setCrossHairPaneTag(cross.tag)
+          this._chartData.setCrossHairPointPaneTag(crossHairPoint, cross.tag)
         } else {
           this._touchCancelCrossHair = true
           this._touchPoint = null
-          this._chartData.setCrossHairPoint(crossHairPoint)
-          this._chartData.setCrossHairPaneTag(null)
+          this._chartData.setCrossHairPointPaneTag(null, null)
         }
       } else {
         this._touchCancelCrossHair = false
@@ -128,13 +122,12 @@ export default class ZoomScrollEventHandler extends EventHandler {
       if (isTouch(event)) {
         if (this._touchPoint) {
           this._touchPoint = { x: event.localX, y: event.localY }
-          this._chartData.setCrossHairPoint(crossHairPoint)
-          this._chartData.setCrossHairPaneTag(cross.tag)
+          this._chartData.setCrossHairPointPaneTag(crossHairPoint, cross.tag)
           return
         }
       }
       const distance = event.localX - this._startScrollPoint.x
-      this._chartData.setCrossHairPoint(crossHairPoint)
+      this._chartData.setCrossHairPointPaneTag(crossHairPoint, cross.tag)
       this._chartData.scroll(distance)
     })
   }
@@ -142,8 +135,7 @@ export default class ZoomScrollEventHandler extends EventHandler {
   longTapEvent (event) {
     this._performCross(event, true, cross => {
       this._touchPoint = { x: event.localX, y: event.localY }
-      this._chartData.setCrossHairPoint({ x: event.localX, y: cross.y })
-      this._chartData.setCrossHairPaneTag(cross.tag)
+      this._chartData.setCrossHairPointPaneTag({ x: event.localX, y: cross.y }, cross.tag)
     })
   }
 

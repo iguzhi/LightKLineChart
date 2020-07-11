@@ -17,6 +17,7 @@ import { defaultStyleOptions } from './options/styleOptions'
 
 import { formatValue } from '../utils/format'
 import { createNewTechnicalIndicator, createTechnicalIndicators } from './technicalindicator/technicalIndicatorControl'
+import { VOL } from './technicalindicator/defaultTechnicalIndicatorType'
 import { DEV } from '../utils/env'
 
 export const InvalidateLevel = {
@@ -85,8 +86,10 @@ export default class ChartData {
     this._dataSpace = 6
     // bar的空间
     this._barSpace = this._calcBarSpace()
+    // 向右偏移的空间
+    this._offsetRightSpace = 50
     // 向右偏移的数量
-    this._offsetRightBarCount = 50 / this._dataSpace
+    this._offsetRightBarCount = this._offsetRightSpace / this._dataSpace
     // 左边最小可见bar的个数
     this._leftMinVisibleBarCount = 2
     // 右边最小可见bar的个数
@@ -96,10 +99,8 @@ export default class ChartData {
     // 结束的索引
     this._to = 0
 
-    // 十字光标位置
-    this._crossHairPoint = null
-    // 标识十字光标在哪个pane
-    this._crossHairPaneTag = null
+    // 十字光标信息
+    this._crossHair = {}
     // 用来记录开始拖拽时向右偏移的数量
     this._preOffsetRightBarCount = 0
 
@@ -278,6 +279,7 @@ export default class ChartData {
       this._pricePrecision = pricePrecision
     }
     if (isValid(volumePrecision) && isNumber(volumePrecision) && volumePrecision >= 0) {
+      this.technicalIndicator(VOL).precision = volumePrecision
       this._volumePrecision = volumePrecision
     }
   }
@@ -312,8 +314,13 @@ export default class ChartData {
       if (isArray(data)) {
         this._loading = false
         this._more = isBoolean(more) ? more : true
+        const isFirstAdd = this._dataList.length === 0
         this._dataList = data.concat(this._dataList)
-        this.adjustOffsetBarCount()
+        if (isFirstAdd) {
+          this.setOffsetRightSpace(this._offsetRightSpace)
+        } else {
+          this.adjustOffsetBarCount()
+        }
       } else {
         const dataSize = this._dataList.length
         if (pos >= dataSize) {
@@ -381,6 +388,7 @@ export default class ChartData {
    * @param space
    */
   setOffsetRightSpace (space) {
+    this._offsetRightSpace = space
     this._offsetRightBarCount = space / this._dataSpace
     this.adjustOffsetBarCount()
   }
@@ -422,36 +430,30 @@ export default class ChartData {
   }
 
   /**
-   * 获取十字光标点
-   * @returns {null}
+   * 获取十字光标信息
+   * @returns {{}}
    */
-  crossHairPoint () {
-    return this._crossHairPoint
-  }
-
-  /**
-   * 获取十字光标点所在的pane的标识
-   * @returns {null}
-   */
-  crossHairPaneTag () {
-    return this._crossHairPaneTag
+  crossHair () {
+    return this._crossHair
   }
 
   /**
    * 设置十字光标点所在的pane的标识
-   * @param tag
-   */
-  setCrossHairPaneTag (tag) {
-    this._crossHairPaneTag = tag
-    this._invalidateHandler(InvalidateLevel.FLOAT_LAYER)
-  }
-
-  /**
-   * 设置十字光标点
    * @param point
+   * @param paneTag
    */
-  setCrossHairPoint (point) {
-    this._crossHairPoint = point
+  setCrossHairPointPaneTag (point, paneTag) {
+    const crossHair = {}
+    if (point) {
+      crossHair.x = point.x
+      crossHair.y = point.y
+      crossHair.paneTag = this._crossHair.paneTag
+    }
+    if (paneTag !== undefined) {
+      crossHair.paneTag = paneTag
+      this._crossHair = crossHair
+      this._invalidateHandler(InvalidateLevel.FLOAT_LAYER)
+    }
   }
 
   /**
@@ -490,6 +492,9 @@ export default class ChartData {
    * @param point
    */
   zoom (scale, point) {
+    if (!point || isValid(point.x)) {
+      point = { x: isValid(this._crossHair.x) ? this._crossHair.x : this._totalDataSpace / 2 }
+    }
     const floatIndexAtZoomPoint = this.coordinateToFloatIndex(point.x)
     const dataSpace = this._dataSpace + scale * (this._dataSpace / 10)
     if (this._innerSetDataSpace(dataSpace)) {
@@ -633,9 +638,8 @@ export default class ChartData {
   addCustomTechnicalIndicator (technicalIndicatorInfo) {
     const info = createNewTechnicalIndicator(technicalIndicatorInfo || {})
     if (info) {
-      const name = technicalIndicatorInfo.name
       // 将生成的新的指标类放入集合
-      this._technicalIndicators[name] = info
+      this._technicalIndicators[technicalIndicatorInfo.name] = info
     }
   }
 
